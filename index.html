@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IT Books Reader</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
+    <!-- PDF.js библиотека -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>IT Books Reader</h1>
+            <div class="controls">
+                <input type="file" id="file-input" accept=".txt,.pdf" style="display: none;">
+                <button onclick="document.getElementById('file-input').click()">Загрузить книгу</button>
+                <button onclick="toggleTheme()">Темная тема</button>
+                <button onclick="increaseFont()">A+</button>
+                <button onclick="decreaseFont()">A-</button>
+                <!-- Навигация по PDF -->
+                <div id="pdf-controls" style="display: none;">
+                    <button onclick="prevPage()">← Назад</button>
+                    <span id="page-info">Страница: 1/1</span>
+                    <button onclick="nextPage()">Вперед →</button>
+                    <input type="range" id="page-slider" min="1" max="1" value="1" onchange="goToPage(this.value)">
+                </div>
+            </div>
+        </header>
+
+        <main class="reader">
+            <div id="book-content" class="book-content">
+                <p>Загрузите книгу для чтения</p>
+            </div>
+            <!-- Контейнер для PDF -->
+            <div id="pdf-viewer" style="display: none; width: 100%; text-align: center;"></div>
+        </main>
+
+        <div class="bookmarks">
+            <h3>Закладки</h3>
+            <ul id="bookmarks-list"></ul>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
