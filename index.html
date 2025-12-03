@@ -6,24 +6,64 @@
     <title>IT Books Reader</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
-    <!-- PDF.js библиотека -->
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    <!-- PDF.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 <body>
+    <!-- Окно авторизации -->
+    <div id="auth-overlay" class="auth-overlay">
+        <div class="auth-modal">
+            <h2>📚 IT Books Reader</h2>
+            <div id="auth-container">
+                <div id="login-form">
+                    <h3>Вход в систему</h3>
+                    <input type="email" id="login-email" placeholder="Ваш email" required>
+                    <input type="password" id="login-password" placeholder="Пароль" required>
+                    <button onclick="login()">Войти</button>
+                    <button onclick="loginWithGoogle()" class="google-btn">
+                        <img src="https://img.icons8.com/color/16/000000/google-logo.png" alt="Google">
+                        Войти через Google
+                    </button>
+                    <p>Нет аккаунта? <a href="#" onclick="showRegister()">Зарегистрироваться</a></p>
+                </div>
+                <div id="register-form" style="display: none;">
+                    <h3>Регистрация</h3>
+                    <input type="text" id="register-name" placeholder="Ваше имя" required>
+                    <input type="email" id="register-email" placeholder="Email" required>
+                    <input type="password" id="register-password" placeholder="Пароль" required>
+                    <button onclick="register()">Создать аккаунт</button>
+                    <button onclick="showLogin()" class="back-btn">Назад к входу</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
         <header class="header">
             <h1>IT Books Reader</h1>
+            <div class="user-info" id="user-info" style="display: none;">
+                <span id="user-name">Гость</span>
+                <button onclick="logout()">Выйти</button>
+            </div>
             <div class="controls">
                 <input type="file" id="file-input" accept=".txt,.pdf" style="display: none;">
-                <button onclick="document.getElementById('file-input').click()">Загрузить книгу</button>
-                <button onclick="toggleTheme()">Темная тема</button>
+                <button onclick="document.getElementById('file-input').click()">📁 Загрузить книгу</button>
+                <button onclick="toggleTheme()">🌙 Тема</button>
                 <button onclick="increaseFont()">A+</button>
                 <button onclick="decreaseFont()">A-</button>
+                <button onclick="saveToCloud()" id="cloud-save-btn" style="display: none;">
+                    ☁️ Сохранить
+                </button>
                 <!-- Навигация по PDF -->
                 <div id="pdf-controls" style="display: none;">
-                    <button onclick="prevPage()">← Назад</button>
+                    <button onclick="prevPage()">←</button>
                     <span id="page-info">Страница: 1/1</span>
-                    <button onclick="nextPage()">Вперед →</button>
+                    <button onclick="nextPage()">→</button>
                     <input type="range" id="page-slider" min="1" max="1" value="1" onchange="goToPage(this.value)">
                 </div>
             </div>
@@ -31,15 +71,29 @@
 
         <main class="reader">
             <div id="book-content" class="book-content">
-                <p>Загрузите книгу для чтения</p>
+                <p>Добро пожаловать в IT Books Reader!<br>Войдите в систему, чтобы начать чтение.</p>
             </div>
             <!-- Контейнер для PDF -->
             <div id="pdf-viewer" style="display: none; width: 100%; text-align: center;"></div>
         </main>
 
-        <div class="bookmarks">
-            <h3>Закладки</h3>
-            <ul id="bookmarks-list"></ul>
+        <div class="sidebar">
+            <div class="bookmarks">
+                <div class="bookmarks-header">
+                    <h3>🔖 Закладки</h3>
+                    <button onclick="addBookmark('Новая закладка')" id="add-bookmark-btn" style="display: none;">+ Добавить</button>
+                </div>
+                <ul id="bookmarks-list">
+                    <li>Закладки синхронизируются с облаком</li>
+                </ul>
+            </div>
+
+            <div class="cloud-library" id="cloud-library">
+                <h3>📚 Облачная библиотека</h3>
+                <div id="library-books">
+                    <p>Войдите, чтобы увидеть ваши книги</p>
+                </div>
+            </div>
         </div>
     </div>
 
