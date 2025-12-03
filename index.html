@@ -19,17 +19,29 @@
     <div id="auth-overlay" class="auth-overlay">
         <div class="auth-modal">
             <h2>📚 IT Books Reader</h2>
+            <div id="firebase-status" style="margin-bottom: 15px;">
+                <p style="color: #48bb78; font-size: 14px;">✅ Готов к работе</p>
+            </div>
             <div id="auth-container">
                 <div id="login-form">
-                    <h3>Вход в систему</h3>
-                    <input type="email" id="login-email" placeholder="Ваш email" required>
-                    <input type="password" id="login-password" placeholder="Пароль" required>
-                    <button onclick="login()">Войти</button>
-                    <button onclick="loginWithGoogle()" class="google-btn">
-                        <img src="https://img.icons8.com/color/16/000000/google-logo.png" alt="Google">
-                        Войти через Google
-                    </button>
-                    <p>Нет аккаунта? <a href="#" onclick="showRegister()">Зарегистрироваться</a></p>
+                    <h3>Добро пожаловать!</h3>
+                    <div class="auth-options">
+                        <button onclick="continueAsGuest()" class="guest-btn">
+                            👤 Продолжить как гость
+                        </button>
+                        <div class="divider">
+                            <span>или</span>
+                        </div>
+                        <h4>Войти в систему</h4>
+                        <input type="email" id="login-email" placeholder="Ваш email" required>
+                        <input type="password" id="login-password" placeholder="Пароль" required>
+                        <button onclick="login()">Войти</button>
+                        <button onclick="loginWithGoogle()" class="google-btn">
+                            <img src="https://img.icons8.com/color/16/000000/google-logo.png" alt="Google">
+                            Войти через Google
+                        </button>
+                        <p>Нет аккаунта? <a href="#" onclick="showRegister()">Зарегистрироваться</a></p>
+                    </div>
                 </div>
                 <div id="register-form" style="display: none;">
                     <h3>Регистрация</h3>
@@ -37,8 +49,15 @@
                     <input type="email" id="register-email" placeholder="Email" required>
                     <input type="password" id="register-password" placeholder="Пароль" required>
                     <button onclick="register()">Создать аккаунт</button>
-                    <button onclick="showLogin()" class="back-btn">Назад к входу</button>
+                    <button onclick="continueAsGuest()" class="guest-btn">
+                        👤 Продолжить как гость
+                    </button>
+                    <button onclick="showLogin()" class="back-btn">Назад</button>
                 </div>
+            </div>
+            <div class="guest-note">
+                <p><strong>Режим гостя:</strong> Вы можете читать книги без регистрации, 
+                но облачные функции будут недоступны.</p>
             </div>
         </div>
     </div>
@@ -46,9 +65,12 @@
     <div class="container">
         <header class="header">
             <h1>IT Books Reader</h1>
-            <div class="user-info" id="user-info" style="display: none;">
+            <div class="user-info" id="user-info">
                 <span id="user-name">Гость</span>
-                <button onclick="logout()">Выйти</button>
+                <div class="user-buttons">
+                    <button onclick="showLoginModal()" id="login-btn" style="display: none;">Войти</button>
+                    <button onclick="logout()" id="logout-btn" style="display: none;">Выйти</button>
+                </div>
             </div>
             <div class="controls">
                 <input type="file" id="file-input" accept=".txt,.pdf" style="display: none;">
@@ -71,7 +93,32 @@
 
         <main class="reader">
             <div id="book-content" class="book-content">
-                <p>Добро пожаловать в IT Books Reader!<br>Войдите в систему, чтобы начать чтение.</p>
+                <div class="welcome-message">
+                    <h2>Добро пожаловать в IT Books Reader!</h2>
+                    <p>Загрузите книгу в формате TXT или PDF для чтения.</p>
+                    <div class="features">
+                        <div class="feature">
+                            <span>📖</span>
+                            <h4>Чтение книг</h4>
+                            <p>Поддержка форматов TXT и PDF</p>
+                        </div>
+                        <div class="feature">
+                            <span>🌙</span>
+                            <h4>Темная тема</h4>
+                            <p>Комфортное чтение днем и ночью</p>
+                        </div>
+                        <div class="feature">
+                            <span>🔖</span>
+                            <h4>Закладки</h4>
+                            <p>Сохраняйте важные места</p>
+                        </div>
+                        <div class="feature">
+                            <span>☁️</span>
+                            <h4>Облако</h4>
+                            <p>Войдите для синхронизации</p>
+                        </div>
+                    </div>
+                </div>
             </div>
             <!-- Контейнер для PDF -->
             <div id="pdf-viewer" style="display: none; width: 100%; text-align: center;"></div>
@@ -81,19 +128,54 @@
             <div class="bookmarks">
                 <div class="bookmarks-header">
                     <h3>🔖 Закладки</h3>
-                    <button onclick="addBookmark('Новая закладка')" id="add-bookmark-btn" style="display: none;">+ Добавить</button>
+                    <button onclick="addBookmark()" id="add-bookmark-btn">+ Добавить</button>
                 </div>
                 <ul id="bookmarks-list">
-                    <li>Закладки синхронизируются с облаком</li>
+                    <li>Загрузите книгу, чтобы добавить закладки</li>
                 </ul>
+                <div class="cloud-note" id="cloud-note">
+                    <p>⚠️ Локальные закладки (вход в систему для синхронизации)</p>
+                </div>
             </div>
 
             <div class="cloud-library" id="cloud-library">
-                <h3>📚 Облачная библиотека</h3>
+                <div class="library-header">
+                    <h3>📚 Облачная библиотека</h3>
+                    <button onclick="showLoginModal()" id="cloud-login-btn">Войти</button>
+                </div>
                 <div id="library-books">
-                    <p>Войдите, чтобы увидеть ваши книги</p>
+                    <div class="cloud-info">
+                        <p>Войдите в систему, чтобы получить доступ к:</p>
+                        <ul>
+                            <li>📁 Облачному хранению книг</li>
+                            <li>🔄 Синхронизации между устройствами</li>
+                            <li>🔖 Облачным закладкам</li>
+                            <li>⚙️ Сохранению настроек</li>
+                        </ul>
+                    </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно входа -->
+    <div id="login-modal" class="login-modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeLoginModal()">&times;</span>
+            <h3>Войти в систему</h3>
+            <p>Войдите, чтобы получить доступ к облачным функциям</p>
+            <button onclick="loginWithGoogle()" class="google-btn modal-btn">
+                <img src="https://img.icons8.com/color/16/000000/google-logo.png" alt="Google">
+                Войти через Google
+            </button>
+            <div class="divider">
+                <span>или</span>
+            </div>
+            <input type="email" id="modal-email" placeholder="Email">
+            <input type="password" id="modal-password" placeholder="Пароль">
+            <button onclick="modalLogin()">Войти</button>
+            <button onclick="showRegister()" class="register-btn">Создать аккаунт</button>
+            <button onclick="closeLoginModal()" class="cancel-btn">Отмена</button>
         </div>
     </div>
 
