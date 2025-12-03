@@ -22,7 +22,7 @@ body.dark-theme {
     min-height: 100vh;
     gap: 20px;
     padding: 20px;
-    max-width: 1400px;
+    max-width: 1600px;
     margin: 0 auto;
 }
 
@@ -34,7 +34,7 @@ body.dark-theme {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     padding: 15px 30px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 15px rgba(0,0,0,0.2);
     z-index: 1000;
 }
 
@@ -45,6 +45,40 @@ body.dark-theme .header {
 .header h1 {
     margin-bottom: 10px;
     text-align: center;
+    font-size: 28px;
+}
+
+.user-info {
+    position: absolute;
+    top: 15px;
+    right: 30px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: rgba(255,255,255,0.15);
+    padding: 8px 20px;
+    border-radius: 25px;
+    backdrop-filter: blur(10px);
+}
+
+.user-info span {
+    font-weight: 500;
+    color: white;
+}
+
+.user-info button {
+    padding: 6px 12px;
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.3s;
+}
+
+.user-info button:hover {
+    background: rgba(255,255,255,0.3);
 }
 
 .controls {
@@ -68,7 +102,8 @@ body.dark-theme .header {
 
 .controls button:hover {
     background: #f0f0f0;
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
 body.dark-theme .controls button {
@@ -78,6 +113,15 @@ body.dark-theme .controls button {
 
 body.dark-theme .controls button:hover {
     background: #2d3748;
+}
+
+#cloud-save-btn {
+    background: linear-gradient(135deg, #48bb78, #38a169);
+    color: white;
+}
+
+#cloud-save-btn:hover {
+    background: linear-gradient(135deg, #38a169, #2f855a);
 }
 
 #pdf-controls {
@@ -125,25 +169,25 @@ body.dark-theme .controls button:hover {
 .reader {
     flex: 1;
     margin-top: 120px;
-    padding: 20px;
+    padding: 25px;
     background: white;
-    border-radius: 10px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    border-radius: 12px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
     min-height: calc(100vh - 180px);
     overflow-y: auto;
 }
 
 body.dark-theme .reader {
     background: #2d3748;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.3);
 }
 
 .book-content {
     font-size: 16px;
     line-height: 1.8;
-    padding: 20px;
+    padding: 25px;
     background: white;
-    border-radius: 8px;
+    border-radius: 10px;
     transition: font-size 0.3s;
 }
 
@@ -153,10 +197,11 @@ body.dark-theme .book-content {
 
 .book-content pre {
     background: #f8f9fa;
-    padding: 15px;
-    border-radius: 5px;
+    padding: 20px;
+    border-radius: 8px;
     overflow-x: auto;
-    margin: 15px 0;
+    margin: 20px 0;
+    border-left: 4px solid #667eea;
 }
 
 body.dark-theme .book-content pre {
@@ -171,19 +216,149 @@ body.dark-theme .book-content pre {
 #pdf-viewer canvas {
     max-width: 100%;
     height: auto;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    border-radius: 5px;
+    box-shadow: 0 3px 15px rgba(0,0,0,0.2);
+    border-radius: 8px;
     margin: 0 auto;
     display: block;
 }
 
-.bookmarks {
-    width: 250px;
-    margin-top: 120px;
-    padding: 20px;
+/* Стили авторизации */
+.auth-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.auth-modal {
     background: white;
+    padding: 40px;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+}
+
+body.dark-theme .auth-modal {
+    background: #2d3748;
+    color: white;
+}
+
+.auth-modal h2 {
+    color: #667eea;
+    margin-bottom: 30px;
+    font-size: 32px;
+}
+
+.auth-modal h3 {
+    color: #4a5568;
+    margin-bottom: 25px;
+    font-size: 24px;
+}
+
+body.dark-theme .auth-modal h3 {
+    color: #e2e8f0;
+}
+
+.auth-modal input {
+    width: 100%;
+    padding: 14px 16px;
+    margin: 10px 0;
+    border: 2px solid #e2e8f0;
     border-radius: 10px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    font-size: 16px;
+    box-sizing: border-box;
+    transition: all 0.3s;
+}
+
+.auth-modal input:focus {
+    border-color: #667eea;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+}
+
+.auth-modal button {
+    width: 100%;
+    padding: 14px;
+    margin: 10px 0;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: 600;
+}
+
+.auth-modal button:hover {
+    background: #5a67d8;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+}
+
+.google-btn {
+    background: #4285f4 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+
+.google-btn:hover {
+    background: #357ae8 !important;
+}
+
+.back-btn {
+    background: #718096 !important;
+}
+
+.back-btn:hover {
+    background: #4a5568 !important;
+}
+
+.auth-modal p {
+    margin-top: 25px;
+    color: #4a5568;
+    font-size: 14px;
+}
+
+body.dark-theme .auth-modal p {
+    color: #a0aec0;
+}
+
+.auth-modal a {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.auth-modal a:hover {
+    text-decoration: underline;
+}
+
+/* Боковая панель */
+.sidebar {
+    width: 350px;
+    margin-top: 120px;
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+/* Закладки */
+.bookmarks {
+    padding: 25px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
     height: fit-content;
 }
 
@@ -191,11 +366,18 @@ body.dark-theme .bookmarks {
     background: #2d3748;
 }
 
+.bookmarks-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
 .bookmarks h3 {
-    margin-bottom: 15px;
     color: #667eea;
-    border-bottom: 2px solid #667eea;
-    padding-bottom: 5px;
+    border-bottom: 3px solid #667eea;
+    padding-bottom: 8px;
+    font-size: 22px;
 }
 
 body.dark-theme .bookmarks h3 {
@@ -203,42 +385,170 @@ body.dark-theme .bookmarks h3 {
     border-bottom-color: #a0aec0;
 }
 
+#add-bookmark-btn {
+    padding: 8px 16px;
+    background: #ed8936;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+#add-bookmark-btn:hover {
+    background: #dd6b20;
+    transform: translateY(-2px);
+}
+
 #bookmarks-list {
     list-style: none;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 10px;
 }
 
 #bookmarks-list li {
-    padding: 10px;
-    margin-bottom: 5px;
+    padding: 12px 15px;
+    margin-bottom: 10px;
     background: #f8f9fa;
-    border-radius: 5px;
+    border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s;
+    border-left: 4px solid #667eea;
 }
 
 #bookmarks-list li:hover {
     background: #e9ecef;
     transform: translateX(5px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
 body.dark-theme #bookmarks-list li {
     background: #4a5568;
     color: #e0e0e0;
+    border-left-color: #a0aec0;
 }
 
 body.dark-theme #bookmarks-list li:hover {
     background: #5a6578;
 }
 
+/* Облачная библиотека */
+.cloud-library {
+    padding: 25px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    flex: 1;
+}
+
+body.dark-theme .cloud-library {
+    background: #2d3748;
+}
+
+.cloud-library h3 {
+    margin-bottom: 20px;
+    color: #667eea;
+    border-bottom: 3px solid #667eea;
+    padding-bottom: 8px;
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+#library-books {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.cloud-book {
+    padding: 15px;
+    margin: 12px 0;
+    background: #f8f9fa;
+    border-radius: 10px;
+    border-left: 4px solid #48bb78;
+    transition: all 0.3s;
+}
+
+.cloud-book:hover {
+    background: #e9ecef;
+    transform: translateX(5px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+.cloud-book-title {
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #2d3748;
+    font-size: 16px;
+}
+
+.cloud-book-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: #718096;
+    margin-bottom: 10px;
+}
+
+.load-btn {
+    width: 100%;
+    padding: 8px;
+    background: #4299e1;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: background 0.3s;
+}
+
+.load-btn:hover {
+    background: #3182ce;
+}
+
+body.dark-theme .cloud-book {
+    background: #4a5568;
+}
+
+body.dark-theme .cloud-book:hover {
+    background: #5a6578;
+}
+
+body.dark-theme .cloud-book-title {
+    color: #e2e8f0;
+}
+
+body.dark-theme .cloud-book-meta {
+    color: #a0aec0;
+}
+
 /* Адаптивность */
-@media (max-width: 1024px) {
+@media (max-width: 1200px) {
     .container {
-        flex-direction: column;
+        flex-wrap: wrap;
     }
     
-    .bookmarks {
+    .sidebar {
         width: 100%;
-        margin-top: 20px;
+        margin-top: 25px;
+        flex-direction: row;
+    }
+    
+    .bookmarks, .cloud-library {
+        flex: 1;
+        min-height: 300px;
+    }
+}
+
+@media (max-width: 992px) {
+    .sidebar {
+        flex-direction: column;
     }
     
     .controls {
@@ -249,5 +559,38 @@ body.dark-theme #bookmarks-list li:hover {
     #pdf-controls {
         margin-left: 0;
         justify-content: center;
+    }
+    
+    .user-info {
+        position: static;
+        margin-bottom: 15px;
+        justify-content: center;
+        width: 100%;
+    }
+    
+    .header h1 {
+        font-size: 24px;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+    
+    .reader {
+        padding: 15px;
+    }
+    
+    .book-content {
+        padding: 15px;
+    }
+    
+    .bookmarks, .cloud-library {
+        padding: 15px;
+    }
+    
+    .auth-modal {
+        padding: 30px 20px;
     }
 }
