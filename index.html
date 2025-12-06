@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IT Books Reader</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <!-- PDF.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
@@ -14,23 +17,109 @@
             <h1>📚 IT Books Reader</h1>
             <div class="controls">
                 <input type="file" id="file-input" accept=".txt,.pdf" style="display: none;">
-                <button onclick="loadBook()">📁 Загрузить книгу</button>
-                <button onclick="toggleTheme()">🌙 Тема</button>
-                <button onclick="increaseFont()">A+</button>
-                <button onclick="decreaseFont()">A-</button>
+                <button onclick="loadBook()" id="load-btn">📁 Загрузить книгу</button>
+                <button onclick="toggleTheme()" id="theme-btn">🌙 Тема</button>
+                <button onclick="toggleFullscreen()" id="fullscreen-btn">📺 Полный экран</button>
+                <div class="font-controls">
+                    <button onclick="decreaseFont()" title="Уменьшить шрифт (Стрелка вниз)">A-</button>
+                    <span id="font-size">16px</span>
+                    <button onclick="increaseFont()" title="Увеличить шрифт (Стрелка вверх)">A+</button>
+                </div>
+                
+                <!-- Навигация по PDF -->
+                <div id="pdf-nav" style="display: none;" class="pdf-nav">
+                    <button onclick="prevPage()" title="Предыдущая страница (Стрелка влево)">←</button>
+                    <span id="page-info">Стр. 1/1</span>
+                    <button onclick="nextPage()" title="Следующая страница (Стрелка вправо)">→</button>
+                </div>
+            </div>
+            
+            <!-- Информация о текущей книге -->
+            <div id="book-info" class="book-info" style="display: none;">
+                <span id="book-title"></span>
+                <button onclick="saveToCloud()" id="save-btn" title="Сохранить в облако">💾 Сохранить</button>
             </div>
         </header>
 
         <main>
+            <!-- Приветственный экран -->
             <div id="welcome-screen" class="welcome-screen">
-                <h2>Добро пожаловать!</h2>
-                <p>Загрузите книгу в формате TXT или PDF</p>
-                <button onclick="loadBook()" class="big-btn">📁 Выбрать файл</button>
+                <div class="welcome-content">
+                    <h2>Добро пожаловать в IT Books Reader!</h2>
+                    <p>Простое приложение для чтения IT-литературы</p>
+                    
+                    <div class="features">
+                        <div class="feature">
+                            <span>📖</span>
+                            <h3>Поддержка форматов</h3>
+                            <p>Читайте книги в форматах TXT и PDF</p>
+                        </div>
+                        <div class="feature">
+                            <span>⌨️</span>
+                            <h3>Управление клавиатурой</h3>
+                            <p>← → для навигации, ↑ ↓ для шрифта</p>
+                        </div>
+                        <div class="feature">
+                            <span>📺</span>
+                            <h3>Полный экран</h3>
+                            <p>Погрузитесь в чтение без отвлекающих элементов</p>
+                        </div>
+                        <div class="feature">
+                            <span>☁️</span>
+                            <h3>Облачное хранение</h3>
+                            <p>Сохраняйте книги для доступа с разных устройств</p>
+                        </div>
+                    </div>
+                    
+                    <div class="keyboard-hint">
+                        <h3>Горячие клавиши:</h3>
+                        <div class="keys">
+                            <div class="key-group">
+                                <kbd>←</kbd> <kbd>→</kbd>
+                                <span>Навигация по страницам</span>
+                            </div>
+                            <div class="key-group">
+                                <kbd>↑</kbd> <kbd>↓</kbd>
+                                <span>Размер шрифта</span>
+                            </div>
+                            <div class="key-group">
+                                <kbd>F</kbd>
+                                <span>Полный экран</span>
+                            </div>
+                            <div class="key-group">
+                                <kbd>ESC</kbd>
+                                <span>Выход из полного экрана</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button onclick="loadBook()" class="big-btn">
+                        📁 Начать чтение - выбрать файл
+                    </button>
+                    <p class="formats">Поддерживаемые форматы: .txt, .pdf</p>
+                    
+                    <!-- Облачные книги -->
+                    <div id="cloud-books" class="cloud-books" style="display: none;">
+                        <h3>📚 Ваши облачные книги</h3>
+                        <div id="cloud-list" class="cloud-list"></div>
+                    </div>
+                </div>
             </div>
             
+            <!-- Контент книги -->
             <div id="book-content" class="book-content" style="display: none;"></div>
+            
+            <!-- Контейнер для PDF -->
             <div id="pdf-viewer" style="display: none;"></div>
+            
+            <!-- Индикатор полного экрана -->
+            <div id="fullscreen-hint" class="fullscreen-hint" style="display: none;">
+                Полный экран • Нажмите ESC для выхода
+            </div>
         </main>
+        
+        <!-- Уведомления -->
+        <div id="notification" class="notification"></div>
     </div>
 
     <script src="script.js"></script>
