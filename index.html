@@ -17,27 +17,27 @@
             <h1>📚 IT Books Reader</h1>
             <div class="controls">
                 <input type="file" id="file-input" accept=".txt,.pdf" style="display: none;">
-                <button onclick="loadBook()" id="load-btn">📁 Загрузить книгу</button>
-                <button onclick="toggleTheme()" id="theme-btn">🌙 Тема</button>
-                <button onclick="toggleFullscreen()" id="fullscreen-btn">📺 Полный экран</button>
+                <button id="load-btn">📁 Загрузить книгу</button>
+                <button id="theme-btn">🌙 Тема</button>
+                <button id="fullscreen-btn">📺 Полный экран</button>
                 <div class="font-controls">
-                    <button onclick="decreaseFont()" title="Уменьшить шрифт (Стрелка вниз)">A-</button>
+                    <button id="decrease-font-btn" title="Уменьшить шрифт (Стрелка вниз)">A-</button>
                     <span id="font-size">16px</span>
-                    <button onclick="increaseFont()" title="Увеличить шрифт (Стрелка вверх)">A+</button>
+                    <button id="increase-font-btn" title="Увеличить шрифт (Стрелка вверх)">A+</button>
                 </div>
                 
                 <!-- Навигация по PDF -->
                 <div id="pdf-nav" style="display: none;" class="pdf-nav">
-                    <button onclick="prevPage()" title="Предыдущая страница (Стрелка влево)">←</button>
+                    <button id="prev-page-btn" title="Предыдущая страница (Стрелка влево)">←</button>
                     <span id="page-info">Стр. 1/1</span>
-                    <button onclick="nextPage()" title="Следующая страница (Стрелка вправо)">→</button>
+                    <button id="next-page-btn" title="Следующая страница (Стрелка вправо)">→</button>
                 </div>
             </div>
             
             <!-- Информация о текущей книге -->
             <div id="book-info" class="book-info" style="display: none;">
                 <span id="book-title"></span>
-                <button onclick="saveToCloud()" id="save-btn" title="Сохранить в облако">💾 Сохранить</button>
+                <button id="save-btn" title="Сохранить в облако">💾 Сохранить</button>
             </div>
         </header>
 
@@ -93,7 +93,7 @@
                         </div>
                     </div>
                     
-                    <button onclick="loadBook()" class="big-btn">
+                    <button id="start-btn" class="big-btn">
                         📁 Начать чтение - выбрать файл
                     </button>
                     <p class="formats">Поддерживаемые форматы: .txt, .pdf</p>
