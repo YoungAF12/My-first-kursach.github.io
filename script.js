@@ -19,17 +19,15 @@ let currentBook = null;
 let currentBookId = null;
 let currentBookType = '';
 let isFullscreen = false;
+let isBookFullscreen = false;
 
 // ==================== ОСНОВНЫЕ ФУНКЦИИ ====================
-
-// Экранирование HTML
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
 }
 
-// Форматирование размера файла
 function formatFileSize(bytes) {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -38,23 +36,20 @@ function formatFileSize(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-// Показать уведомление
 function showNotification(message, type = 'info') {
     const notification = document.getElementById('notification');
     notification.textContent = message;
+    notification.className = `notification ${type}`;
     notification.style.display = 'block';
     
-    // Устанавливаем цвет в зависимости от типа
-    let bgColor = '#4361ee'; // синий по умолчанию
-    if (type === 'error') bgColor = '#ef4444';
-    if (type === 'success') bgColor = '#10b981';
-    if (type === 'warning') bgColor = '#f59e0b';
+    // Добавляем класс для анимации
+    notification.classList.add('show');
     
-    notification.style.background = bgColor;
-    
-    // Автоматическое скрытие
     setTimeout(() => {
-        notification.style.display = 'none';
+        notification.classList.remove('show');
+        setTimeout(() => {
+            notification.style.display = 'none';
+        }, 300);
     }, 3000);
 }
 
@@ -106,21 +101,43 @@ function initEventListeners() {
     document.getElementById('file-input').addEventListener('change', handleFileSelect);
     
     // Кнопка темы
-    document.getElementById('theme-btn').addEventListener('click', toggleTheme);
+    document.getElementById('theme-btn').addEventListener('click', function() {
+        toggleTheme();
+    });
     
     // Кнопки шрифта
-    document.getElementById('increase-font-btn').addEventListener('click', increaseFont);
-    document.getElementById('decrease-font-btn').addEventListener('click', decreaseFont);
+    document.getElementById('increase-font-btn').addEventListener('click', function() {
+        console.log('Клик по кнопке увеличения шрифта');
+        increaseFont();
+    });
+    
+    document.getElementById('decrease-font-btn').addEventListener('click', function() {
+        console.log('Клик по кнопке уменьшения шрифта');
+        decreaseFont();
+    });
     
     // Кнопка полного экрана
-    document.getElementById('fullscreen-btn').addEventListener('click', toggleFullscreen);
+    document.getElementById('fullscreen-btn').addEventListener('click', function() {
+        console.log('Клик по кнопке полного экрана');
+        toggleFullscreen();
+    });
     
     // Кнопки навигации PDF
-    document.getElementById('prev-page-btn').addEventListener('click', prevPage);
-    document.getElementById('next-page-btn').addEventListener('click', nextPage);
+    document.getElementById('prev-page-btn').addEventListener('click', function() {
+        console.log('Клик по кнопке предыдущей страницы');
+        prevPage();
+    });
+    
+    document.getElementById('next-page-btn').addEventListener('click', function() {
+        console.log('Клик по кнопке следующей страницы');
+        nextPage();
+    });
     
     // Кнопка сохранения
-    document.getElementById('save-btn').addEventListener('click', saveToCloud);
+    document.getElementById('save-btn').addEventListener('click', function() {
+        console.log('Клик по кнопке сохранения');
+        saveToCloud();
+    });
     
     // Горячие клавиши
     document.addEventListener('keydown', handleKeyPress);
@@ -131,7 +148,58 @@ function initEventListeners() {
     document.addEventListener('mozfullscreenchange', handleFullscreenChange);
     document.addEventListener('MSFullscreenChange', handleFullscreenChange);
     
+    // Свайпы для телефонов (навигация по страницам)
+    setupTouchNavigation();
+    
     console.log('✅ Обработчики событий настроены');
+}
+
+// ==================== НАВИГАЦИЯ КАСАНИЯМИ ДЛЯ ТЕЛЕФОНОВ ====================
+function setupTouchNavigation() {
+    let touchStartX = 0;
+    let touchEndX = 0;
+    let touchStartY = 0;
+    let touchEndY = 0;
+    const minSwipeDistance = 50;
+    
+    document.addEventListener('touchstart', function(e) {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+    }, false);
+    
+    document.addEventListener('touchend', function(e) {
+        touchEndX = e.changedTouches[0].screenX;
+        touchEndY = e.changedTouches[0].screenY;
+        handleTouchSwipe();
+    }, false);
+    
+    function handleTouchSwipe() {
+        const deltaX = touchEndX - touchStartX;
+        const deltaY = touchEndY - touchStartY;
+        
+        // Горизонтальный свайп для навигации по страницам
+        if (Math.abs(deltaX) > Math.abs(deltaY)) {
+            if (Math.abs(deltaX) > minSwipeDistance) {
+                if (deltaX > 0) {
+                    // Свайп вправо - предыдущая страница
+                    prevPage();
+                } else {
+                    // Свайп влево - следующая страница
+                    nextPage();
+                }
+            }
+        }
+        // Вертикальный свайп для изменения шрифта (только если книга открыта)
+        else if (currentBook && Math.abs(deltaY) > minSwipeDistance) {
+            if (deltaY > 0) {
+                // Свайп вниз - уменьшить шрифт
+                decreaseFont();
+            } else {
+                // Свайп вверх - увеличить шрифт
+                increaseFont();
+            }
+        }
+    }
 }
 
 // ==================== ОБРАБОТЧИКИ ФАЙЛОВ ====================
@@ -173,6 +241,11 @@ function openBook(file) {
     }
     
     showNotification(`📖 Открыта книга: ${file.name}`, 'success');
+    
+    // Показываем кнопки навигации для PDF на мобильных устройствах
+    if (currentBookType === 'pdf' && window.innerWidth <= 768) {
+        showMobileNavigation();
+    }
 }
 
 function loadTxtFile(file) {
@@ -214,7 +287,7 @@ function loadPdfFile(file) {
         const typedarray = new Uint8Array(e.target.result);
         
         // Показываем индикатор загрузки
-        document.getElementById('pdf-viewer').innerHTML = '<p>Загрузка PDF...</p>';
+        document.getElementById('pdf-viewer').innerHTML = '<div class="pdf-loading">Загрузка PDF...</div>';
         document.getElementById('pdf-viewer').style.display = 'block';
         document.getElementById('book-content').style.display = 'none';
         document.getElementById('pdf-nav').style.display = 'flex';
@@ -230,7 +303,7 @@ function loadPdfFile(file) {
             
         }).catch(function(error) {
             console.error('❌ Ошибка загрузки PDF:', error);
-            document.getElementById('pdf-viewer').innerHTML = '<p style="color: red;">❌ Ошибка загрузки PDF</p>';
+            document.getElementById('pdf-viewer').innerHTML = '<div class="pdf-error">❌ Ошибка загрузки PDF</div>';
             showNotification('❌ Ошибка загрузки PDF файла', 'error');
         });
     };
@@ -266,14 +339,27 @@ function renderPage(pageNum) {
             console.log(`✅ Страница ${pageNum} отрисована`);
             document.getElementById('pdf-viewer').innerHTML = '';
             document.getElementById('pdf-viewer').appendChild(canvas);
+            
+            // Добавляем номер страницы на canvas
+            addPageNumberToCanvas(canvas, pageNum);
         });
     }).catch(function(error) {
         console.error('❌ Ошибка рендеринга страницы:', error);
     });
 }
 
+function addPageNumberToCanvas(canvas, pageNum) {
+    const ctx = canvas.getContext('2d');
+    ctx.save();
+    ctx.font = '16px Arial';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.fillText(`Страница ${pageNum} из ${totalPages}`, 20, canvas.height - 20);
+    ctx.restore();
+}
+
 function prevPage() {
     console.log('← Предыдущая страница');
+    if (currentBookType !== 'pdf') return;
     if (currentPage > 1) {
         currentPage--;
         renderPage(currentPage);
@@ -283,6 +369,7 @@ function prevPage() {
 
 function nextPage() {
     console.log('→ Следующая страница');
+    if (currentBookType !== 'pdf') return;
     if (currentPage < totalPages) {
         currentPage++;
         renderPage(currentPage);
@@ -300,10 +387,10 @@ function handleKeyPress(e) {
     
     // Стрелки влево/вправо для навигации по PDF
     if (currentBookType === 'pdf') {
-        if (e.key === 'ArrowLeft') {
+        if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
             e.preventDefault();
             prevPage();
-        } else if (e.key === 'ArrowRight') {
+        } else if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
             e.preventDefault();
             nextPage();
         }
@@ -319,7 +406,7 @@ function handleKeyPress(e) {
     }
     
     // Клавиша F для полного экрана
-    if (e.key === 'f' || e.key === 'F') {
+    if (e.key === 'f' || e.key === 'F' || e.key === 'а' || e.key === 'А') {
         e.preventDefault();
         toggleFullscreen();
     }
@@ -360,13 +447,125 @@ function updateFontSizeDisplay() {
     document.getElementById('font-size').textContent = fontSize + 'px';
 }
 
+// ==================== ТЕМА ====================
+function toggleTheme() {
+    console.log('🎨 Переключение темы');
+    const body = document.body;
+    body.classList.toggle('dark');
+    
+    const isDark = body.classList.contains('dark');
+    const themeBtn = document.getElementById('theme-btn');
+    
+    if (isDark) {
+        themeBtn.textContent = '☀️ Светлая';
+        themeBtn.innerHTML = '☀️ Светлая';
+    } else {
+        themeBtn.textContent = '🌙 Тёмная';
+        themeBtn.innerHTML = '🌙 Тёмная';
+    }
+    
+    saveSettings();
+    showNotification(isDark ? '🌙 Тёмная тема' : '☀️ Светлая тема', 'info');
+}
+
 // ==================== ПОЛНЫЙ ЭКРАН ====================
 function toggleFullscreen() {
     console.log('📺 Переключение полного экрана');
-    if (!isFullscreen) {
-        enterFullscreen();
+    
+    if (window.innerWidth <= 768) {
+        // На телефоне - полноэкранный режим только для книги
+        toggleBookFullscreen();
     } else {
-        exitFullscreen();
+        // На компьютере - полноэкранный режим для всего сайта
+        if (!isFullscreen) {
+            enterFullscreen();
+        } else {
+            exitFullscreen();
+        }
+    }
+}
+
+function toggleBookFullscreen() {
+    const bookContent = document.getElementById('book-content');
+    const pdfViewer = document.getElementById('pdf-viewer');
+    const header = document.querySelector('header');
+    const controls = document.querySelector('.controls');
+    const bookInfo = document.getElementById('book-info');
+    
+    isBookFullscreen = !isBookFullscreen;
+    
+    if (isBookFullscreen) {
+        // Вход в полноэкранный режим книги
+        if (bookContent.style.display !== 'none') {
+            bookContent.classList.add('book-fullscreen');
+        }
+        if (pdfViewer.style.display !== 'none') {
+            pdfViewer.classList.add('book-fullscreen');
+        }
+        
+        header.style.display = 'none';
+        controls.style.display = 'none';
+        bookInfo.style.display = 'none';
+        
+        document.body.classList.add('book-fullscreen-mode');
+        
+        // Показываем кнопки навигации для телефона
+        showMobileNavigation();
+        
+        showNotification('📖 Книга на полном экране. Нажмите для выхода.', 'info');
+    } else {
+        // Выход из полноэкранного режима книги
+        bookContent.classList.remove('book-fullscreen');
+        pdfViewer.classList.remove('book-fullscreen');
+        
+        header.style.display = 'block';
+        controls.style.display = 'flex';
+        bookInfo.style.display = 'flex';
+        
+        document.body.classList.remove('book-fullscreen-mode');
+        
+        // Скрываем кнопки навигации
+        hideMobileNavigation();
+        
+        showNotification('📖 Выход из полного экрана книги', 'info');
+    }
+}
+
+// Обработчик клика для выхода из полноэкранного режима книги
+document.addEventListener('click', function(e) {
+    if (isBookFullscreen && !e.target.closest('.mobile-nav') && !e.target.closest('canvas')) {
+        toggleBookFullscreen();
+    }
+});
+
+function showMobileNavigation() {
+    // Создаем кнопки навигации для телефонов
+    if (currentBookType === 'pdf' && !document.getElementById('mobile-prev-btn')) {
+        const mobileNav = document.createElement('div');
+        mobileNav.className = 'mobile-nav';
+        mobileNav.innerHTML = `
+            <button id="mobile-prev-btn" class="mobile-nav-btn left">←</button>
+            <button id="mobile-next-btn" class="mobile-nav-btn right">→</button>
+        `;
+        document.body.appendChild(mobileNav);
+        
+        // Обработчики для мобильных кнопок
+        document.getElementById('mobile-prev-btn').addEventListener('click', function(e) {
+            e.stopPropagation();
+            prevPage();
+        });
+        
+        document.getElementById('mobile-next-btn').addEventListener('click', function(e) {
+            e.stopPropagation();
+            nextPage();
+        });
+    }
+}
+
+function hideMobileNavigation() {
+    const mobileNav = document.querySelector('.mobile-nav');
+    if (mobileNav) {
+        mobileNav.remove();
     }
 }
 
@@ -407,30 +606,19 @@ function handleFullscreenChange() {
     console.log(`📺 Полный экран: ${isFullscreen}`);
     
     const hint = document.getElementById('fullscreen-hint');
-    const container = document.querySelector('.container');
+    const fullscreenBtn = document.getElementById('fullscreen-btn');
     
     if (isFullscreen) {
         hint.style.display = 'block';
-        container.style.padding = '10px';
-        document.body.classList.add('fullscreen');
+        fullscreenBtn.textContent = '📺 Выйти';
+        fullscreenBtn.innerHTML = '📺 Выйти';
         showNotification('📺 Полный экран включен', 'info');
     } else {
         hint.style.display = 'none';
-        container.style.padding = '20px';
-        document.body.classList.remove('fullscreen');
+        fullscreenBtn.textContent = '📺 Полный экран';
+        fullscreenBtn.innerHTML = '📺 Полный экран';
         showNotification('📺 Полный экран выключен', 'info');
     }
-}
-
-// ==================== ТЕМА ====================
-function toggleTheme() {
-    console.log('🎨 Переключение темы');
-    document.body.classList.toggle('dark');
-    saveSettings();
-    
-    const isDark = document.body.classList.contains('dark');
-    document.getElementById('theme-btn').textContent = isDark ? '☀️ Светлая' : '🌙 Темная';
-    showNotification(isDark ? '🌙 Темная тема' : '☀️ Светлая тема', 'info');
 }
 
 // ==================== FIREBASE ====================
@@ -449,7 +637,6 @@ async function saveToCloud() {
     try {
         showNotification('💾 Сохранение в облако...', 'info');
         
-        // Читаем файл как текст (для TXT) или как base64 (для PDF)
         const reader = new FileReader();
         
         if (currentBookType === 'txt') {
@@ -467,15 +654,12 @@ async function saveToCloud() {
                 fontSize: fontSize
             };
             
-            // Для TXT сохраняем текст, для PDF сохраняем base64
             if (currentBookType === 'txt') {
                 bookData.content = reader.result;
             } else {
-                // Для PDF сохраняем только base64 без префикса data:...
                 bookData.content = reader.result.split(',')[1];
             }
             
-            // Сохраняем в Firestore
             const docRef = await firestore.collection('books').add(bookData);
             currentBookId = docRef.id;
             
@@ -548,11 +732,9 @@ async function loadCloudBook(bookId, bookData) {
         let file;
         
         if (bookData.type === 'txt') {
-            // Для TXT создаем файл из текста
             const blob = new Blob([bookData.content], { type: 'text/plain' });
             file = new File([blob], bookData.name, { type: 'text/plain' });
         } else {
-            // Для PDF создаем файл из base64
             const byteString = atob(bookData.content);
             const arrayBuffer = new ArrayBuffer(byteString.length);
             const uintArray = new Uint8Array(arrayBuffer);
@@ -565,13 +747,11 @@ async function loadCloudBook(bookId, bookData) {
             file = new File([blob], bookData.name, { type: 'application/pdf' });
         }
         
-        // Восстанавливаем настройки
         if (bookData.fontSize) {
             fontSize = bookData.fontSize;
             updateFontSize();
         }
         
-        // Открываем книгу
         openBook(file);
         currentBookId = bookId;
         
@@ -590,7 +770,9 @@ function loadSettings() {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'dark') {
         document.body.classList.add('dark');
-        document.getElementById('theme-btn').textContent = '☀️ Светлая';
+        const themeBtn = document.getElementById('theme-btn');
+        themeBtn.textContent = '☀️ Светлая';
+        themeBtn.innerHTML = '☀️ Светлая';
     }
     
     // Размер шрифта
