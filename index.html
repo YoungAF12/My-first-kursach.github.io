@@ -1,35 +1,49 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <title>Электронная библиотека ИТ</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <title>IT Library</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css">
   <script src="libs/pdf.min.js"></script>
 </head>
+
 <body class="light">
 
-<header>
-  <h1>📘 Электронная библиотека</h1>
+<header class="top">
+  <div class="logo">
+    <span>📘</span>
+    <h1>IT Library</h1>
+  </div>
+
   <div class="controls">
-    <input type="file" id="fileInput" accept=".txt,.pdf">
+    <label class="upload">
+      Загрузить книгу
+      <input type="file" id="fileInput" accept=".txt,.pdf">
+    </label>
+
     <button id="themeBtn">🌙</button>
   </div>
 </header>
 
 <main>
   <div id="readerContainer">
-    <button class="nav left">◀</button>
+    <button id="prevBtn" class="nav left">◀</button>
 
-    <div id="reader"></div>
+    <div id="reader">
+      <p class="hint">Загрузите TXT или PDF книгу</p>
+    </div>
 
-    <button class="nav right">▶</button>
+    <button id="nextBtn" class="nav right">▶</button>
   </div>
 
-  <button id="fullscreenBtn">⛶ Полный экран</button>
+  <div class="actions">
+    <button id="fullscreenBtn">⛶ Полный экран</button>
+  </div>
 </main>
 
 <script type="module" src="script.js"></script>
 </body>
 </html>
+
