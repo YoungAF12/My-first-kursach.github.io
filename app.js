@@ -2,13 +2,14 @@
 
 class DigitalLibraryApp {
     constructor() {
-        this.currentTheme = localStorage.getItem('theme') || 'light';
+        // Получаем тему из localStorage или используем 'light' по умолчанию
+        this.currentTheme = localStorage.getItem('digital-library-theme') || 'light';
         this.init();
     }
     
     init() {
-        // Инициализация темы
-        this.initTheme();
+        // Применяем тему сразу при инициализации
+        this.applyTheme();
         
         // Инициализация анимаций
         this.initAnimations();
@@ -25,6 +26,9 @@ class DigitalLibraryApp {
         // Инициализация форм
         this.initForms();
         
+        // Инициализация пользовательской системы
+        this.initUserSystem();
+        
         // Скрываем лоадер
         this.hideLoader();
         
@@ -34,28 +38,29 @@ class DigitalLibraryApp {
         }
     }
     
-    // Инициализация темы
-    initTheme() {
+    // Применение темы
+    applyTheme() {
         document.documentElement.setAttribute('data-theme', this.currentTheme);
-        
-        const themeToggle = document.getElementById('themeToggle');
-        if (themeToggle) {
-            themeToggle.addEventListener('click', () => this.toggleTheme());
-            this.updateThemeIcon();
-        }
-    }
-    
-    toggleTheme() {
-        this.currentTheme = this.currentTheme === 'light' ? 'dark' : 'light';
-        document.documentElement.setAttribute('data-theme', this.currentTheme);
-        localStorage.setItem('theme', this.currentTheme);
+        localStorage.setItem('digital-library-theme', this.currentTheme);
         this.updateThemeIcon();
     }
     
+    // Переключение темы
+    toggleTheme() {
+        this.currentTheme = this.currentTheme === 'light' ? 'dark' : 'light';
+        this.applyTheme();
+    }
+    
+    // Обновление иконки темы
     updateThemeIcon() {
         const icon = document.querySelector('#themeToggle i');
         if (icon) {
             icon.className = this.currentTheme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+            // Обновляем текст
+            const text = icon.nextElementSibling;
+            if (text) {
+                text.textContent = this.currentTheme === 'light' ? 'Тёмная' : 'Светлая';
+            }
         }
     }
     
@@ -122,16 +127,10 @@ class DigitalLibraryApp {
     
     // Модальные окна
     initModals() {
-        const loginBtn = document.getElementById('loginBtn');
         const loginModal = document.getElementById('loginModal');
-        const closeModal = document.getElementById('closeModal');
+        const closeModal = document.querySelector('.close-modal');
         
-        if (loginBtn && loginModal) {
-            loginBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                loginModal.classList.add('active');
-            });
-            
+        if (closeModal && loginModal) {
             closeModal.addEventListener('click', () => {
                 loginModal.classList.remove('active');
             });
@@ -175,6 +174,44 @@ class DigitalLibraryApp {
         }
     }
     
+    // Инициализация пользовательской системы
+    initUserSystem() {
+        // Обновляем UI в зависимости от авторизации
+        this.updateUserUI();
+        
+        // Назначаем обработчик для кнопки входа/профиля
+        const loginBtn = document.getElementById('loginBtn');
+        if (loginBtn) {
+            loginBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (window.userManager && window.userManager.isAuthenticated()) {
+                    window.userManager.showCurrentUserProfile();
+                } else {
+                    window.userManager.openAuthModal();
+                }
+            });
+        }
+    }
+    
+    // Обновление UI пользователя
+    updateUserUI() {
+        const loginBtn = document.getElementById('loginBtn');
+        if (loginBtn && window.userManager) {
+            if (window.userManager.isAuthenticated()) {
+                const user = window.userManager.currentUser;
+                loginBtn.innerHTML = `
+                    <i class="fas fa-user"></i>
+                    <span>${user.username}</span>
+                `;
+            } else {
+                loginBtn.innerHTML = `
+                    <i class="fas fa-user"></i>
+                    <span>Войти</span>
+                `;
+            }
+        }
+    }
+    
     // Показать последние книги
     displayRecentBooks() {
         const recentBooks = bookStorage.getRecentBooks(4);
@@ -197,9 +234,42 @@ class DigitalLibraryApp {
                     <span class="book-format">${book.format.toUpperCase()}</span>
                 </div>
                 <div class="book-info">
+                    <div class="book-meta">
+                        <span class="book-genre">${book.genre}</span>
+                        <span class="book-date">${this.formatDate(book.dateAdded)}</span>
+                    </div>
                     <h3 class="book-title">${book.title}</h3>
                     <p class="book-author">${book.author}</p>
+                    
+                    <!-- Информация о загрузившем -->
+                    ${book.uploadedBy ? `
+                        <div class="book-uploader">
+                            <i class="fas fa-user"></i>
+                            <span class="uploader-name" 
+                                  onclick="userManager.showProfile('${book.uploadedBy}')"
+                                  style="cursor: pointer;">
+                                ${book.uploadedByName}
+                            </span>
+                        </div>
+                    ` : ''}
+                    
                     <p class="book-description">${book.description || 'Без описания'}</p>
+                    
+                    <div class="book-stats">
+                        <span class="book-stat">
+                            <i class="fas fa-eye"></i>
+                            ${book.views || 0}
+                        </span>
+                        <span class="book-stat">
+                            <i class="fas fa-download"></i>
+                            ${book.downloads || 0}
+                        </span>
+                        <span class="book-stat">
+                            <i class="fas fa-file"></i>
+                            ${this.formatFileSize(book.size || 0)}
+                        </span>
+                    </div>
+                    
                     <div class="book-actions">
                         <button class="action-btn read-btn">
                             <i class="fas fa-eye"></i>
@@ -217,14 +287,19 @@ class DigitalLibraryApp {
     
     // Добавление обработчиков для карточек книг
     addBookCardEventListeners() {
+        // Кнопки чтения
         document.querySelectorAll('.read-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const bookCard = e.target.closest('.book-card');
                 const bookId = bookCard.dataset.id;
-                this.readBook(bookId);
+                const book = bookStorage.getBookById(bookId);
+                if (book && window.bookViewer) {
+                    window.bookViewer.showBook(book);
+                }
             });
         });
         
+        // Кнопки скачивания
         document.querySelectorAll('.download-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const bookCard = e.target.closest('.book-card');
@@ -232,16 +307,19 @@ class DigitalLibraryApp {
                 this.downloadBook(bookId);
             });
         });
-    }
-    
-    // Чтение книги
-    readBook(bookId) {
-        const book = bookStorage.getBookById(bookId);
-        if (book) {
-            bookStorage.incrementViews(bookId);
-            this.showNotification(`Открываем "${book.title}" для чтения`, 'info');
-            // В реальном приложении здесь будет открытие читалки
-        }
+        
+        // Клик по имени пользователя
+        document.querySelectorAll('.uploader-name').forEach(name => {
+            name.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const bookCard = e.target.closest('.book-card');
+                const bookId = bookCard.dataset.id;
+                const book = bookStorage.getBookById(bookId);
+                if (book && book.uploadedBy && window.userManager) {
+                    window.userManager.showProfile(book.uploadedBy);
+                }
+            });
+        });
     }
     
     // Скачивание книги
@@ -252,24 +330,70 @@ class DigitalLibraryApp {
             
             // Создаем временную ссылку для скачивания
             if (book.fileContent) {
-                const blob = new Blob([book.fileContent], { type: 'text/plain' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${book.title}.${book.format}`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
+                let blob, fileName;
+                
+                if (book.format === 'txt') {
+                    blob = new Blob([book.fileContent], { type: 'text/plain;charset=utf-8' });
+                    fileName = `${book.title}.txt`;
+                } else if (book.format === 'pdf') {
+                    // Для base64 PDF
+                    if (book.fileContent.startsWith('data:application/pdf;base64,')) {
+                        const base64Data = book.fileContent.split(',')[1];
+                        const binaryData = atob(base64Data);
+                        const bytes = new Uint8Array(binaryData.length);
+                        
+                        for (let i = 0; i < binaryData.length; i++) {
+                            bytes[i] = binaryData.charCodeAt(i);
+                        }
+                        
+                        blob = new Blob([bytes], { type: 'application/pdf' });
+                        fileName = `${book.title}.pdf`;
+                    } else {
+                        blob = new Blob([book.fileContent], { type: 'application/pdf' });
+                        fileName = `${book.title}.pdf`;
+                    }
+                }
+                
+                if (blob) {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }
             }
             
             this.showNotification(`Книга "${book.title}" скачивается`, 'success');
         }
     }
     
+    // Форматирование даты
+    formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('ru-RU', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+        });
+    }
+    
+    // Форматирование размера файла
+    formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
     // Уведомления
     showNotification(message, type = 'info') {
         const container = document.getElementById('notificationContainer');
+        if (!container) return;
+        
         const notification = document.createElement('div');
         notification.className = `notification ${type}`;
         notification.innerHTML = `
