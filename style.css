@@ -1,81 +1,133 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
+
 :root {
-  --bg-light: #f4f4f4;
-  --bg-dark: #121212;
-  --text-light: #000;
-  --text-dark: #fff;
+  --radius: 14px;
+  --glass: rgba(255,255,255,0.7);
 }
 
+/* ===== ОСНОВА ===== */
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
+  font-family: 'Inter', sans-serif;
   transition: 0.3s;
 }
 
 body.light {
-  background: var(--bg-light);
-  color: var(--text-light);
+  background: linear-gradient(135deg, #eef2ff, #f8fafc);
+  color: #111;
 }
 
 body.dark {
-  background: var(--bg-dark);
-  color: var(--text-dark);
+  background: linear-gradient(135deg, #020617, #0f172a);
+  color: #f8fafc;
 }
 
-header {
-  padding: 10px 15px;
+/* ===== HEADER ===== */
+.top {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 15px 20px;
 }
 
+.logo {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* ===== КНОПКИ ===== */
+.controls {
+  display: flex;
+  gap: 10px;
+}
+
+button,
+.upload {
+  background: var(--glass);
+  border: none;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+body.dark button,
+body.dark .upload {
+  background: rgba(255,255,255,0.08);
+  color: white;
+}
+
+button:hover,
+.upload:hover {
+  transform: translateY(-2px);
+}
+
+/* ===== ЧИТАЛКА ===== */
 main {
-  padding: 10px;
+  padding: 20px;
 }
 
 #readerContainer {
-  position: relative;
-  max-width: 800px;
+  max-width: 900px;
   margin: auto;
-  background: rgba(0,0,0,0.05);
-  min-height: 70vh;
+  position: relative;
+  border-radius: var(--radius);
+  background: var(--glass);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+}
+
+body.dark #readerContainer {
+  background: rgba(255,255,255,0.05);
 }
 
 #reader {
-  padding: 20px;
-  overflow-y: auto;
+  padding: 30px;
   height: 70vh;
+  overflow-y: auto;
+  line-height: 1.7;
 }
 
+.hint {
+  text-align: center;
+  opacity: 0.6;
+}
+
+/* ===== НАВИГАЦИЯ ===== */
 .nav {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
+  width: 50px;
+  height: 50px;
+  font-size: 24px;
+  border-radius: 50%;
   background: rgba(0,0,0,0.3);
   color: white;
-  border: none;
-  font-size: 30px;
-  padding: 10px;
-  cursor: pointer;
 }
 
-.left { left: 5px; }
-.right { right: 5px; }
+.left { left: -25px; }
+.right { right: -25px; }
 
-button {
-  cursor: pointer;
+/* ===== ДЕЙСТВИЯ ===== */
+.actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 15px;
 }
 
-#fullscreenBtn {
-  margin-top: 10px;
-}
-
-/* Адаптация */
-@media (max-width: 600px) {
+/* ===== АДАПТАЦИЯ ===== */
+@media (max-width: 768px) {
   #reader {
     height: 60vh;
+    padding: 20px;
   }
 
   .nav {
     opacity: 0.6;
   }
+
+  .left { left: 5px; }
+  .right { right: 5px; }
 }
