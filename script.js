@@ -1,6 +1,5 @@
 // ==================== КОНФИГУРАЦИЯ FIREBASE ====================
-// ВАЖНО: firebase-config.js должен быть подключен перед этим файлом
-// Если его нет, используем пустой объект
+// firebase-config.js должен быть подключен перед этим файлом
 const firebaseConfig = window.firebaseConfig || {};
 
 // ==================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ====================
@@ -14,7 +13,6 @@ let currentBook = null;
 let currentBookId = null;
 let currentBookType = '';
 let isFullscreen = false;
-let isBookFullscreen = false;
 
 // ==================== ОСНОВНЫЕ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
 function escapeHtml(text) {
@@ -463,7 +461,7 @@ function enterFullscreen() {
     } else if (elem.mozRequestFullScreen) {
         elem.mozRequestFullScreen();
     } else if (elem.msRequestFullscreen) {
-        elem.msRequestfullscreen();
+        elem.msRequestFullscreen();
     }
 }
 
@@ -667,135 +665,4 @@ function saveSettings() {
     const isDark = document.body.classList.contains('dark');
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
     localStorage.setItem('fontSize', fontSize.toString());
-}
-
-// ==================== ДОПОЛНИТЕЛЬНЫЕ СТИЛИ ДЛЯ CSS ====================
-// Добавьте эти стили в style.css если их нет:
-
-// Для элементов в info блоке
-.book-info-left {
-    flex: 1;
-    min-width: 0;
-}
-
-.book-meta {
-    font-size: 0.9em;
-    color: #666;
-    margin-top: 5px;
-}
-
-.save-btn {
-    margin-left: 15px;
-    white-space: nowrap;
-}
-
-// Адаптивность для book-info
-@media (max-width: 768px) {
-    .book-info {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-    }
-    
-    .save-btn {
-        margin-left: 0;
-        width: 100%;
-    }
-}
-
-// Стили для уведомлений
-.notification {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    padding: 12px 20px;
-    background: rgba(139, 115, 85, 0.95);
-    color: white;
-    border-radius: 8px;
-    z-index: 1000;
-    max-width: 300px;
-    display: none;
-    animation: slideIn 0.3s ease;
-}
-
-.notification.show {
-    display: block;
-}
-
-@keyframes slideIn {
-    from {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
-
-.notification.success {
-    background: rgba(76, 175, 80, 0.95);
-}
-
-.notification.error {
-    background: rgba(244, 67, 54, 0.95);
-}
-
-.notification.info {
-    background: rgba(33, 150, 243, 0.95);
-}
-
-// Стили для полного экрана
-.fullscreen-hint {
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 0.85em;
-    z-index: 1000;
-    display: none;
-}
-
-// Загрузка PDF
-.pdf-loading {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 300px;
-    font-style: italic;
-    color: #666;
-}
-
-.pdf-error {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 300px;
-    color: #f44336;
-    font-style: italic;
-}
-
-// Контейнер для PDF
-#pdf-viewer canvas {
-    max-width: 100%;
-    height: auto;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    border-radius: 4px;
-}
-
-// Адаптивность для мобильных
-@media (max-width: 768px) {
-    .controls {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 10px;
-    }
-    
-    .font-controls, .pdf-nav {
-        justify-content: center;
-    }
 }
