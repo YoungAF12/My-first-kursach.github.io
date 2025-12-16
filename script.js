@@ -1,5 +1,6 @@
 // ==================== КОНФИГУРАЦИЯ FIREBASE ====================
-// firebase-config.js должен быть подключен перед этим файлом
+// ВАЖНО: firebase-config.js должен быть подключен перед этим файлом
+// Если его нет, используем пустой объект
 const firebaseConfig = window.firebaseConfig || {};
 
 // ==================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ====================
@@ -77,7 +78,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Установка PDF.js worker
     if (typeof pdfjsLib !== 'undefined') {
         pdfjsLib.GlobalWorkerOptions.workerSrc = 
-            'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+            'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
     }
     
     // Инициализация обработчиков событий
