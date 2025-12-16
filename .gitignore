@@ -1,0 +1,35 @@
+# .gitignore для IT Books Reader
+
+# Файлы с конфиденциальной информацией (НЕ загружать на GitHub!)
+firebase-config.js  # ← ВАЖНО! Этот файл с ключами Firebase
+
+# Логи и временные файлы
+*.log
+*.tmp
+*.temp
+
+# Системные файлы
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Файлы редакторов
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Node.js (если будете использовать)
+node_modules/
+package-lock.json
+
+# Кэш
+.cache/
+dist/
+
+# Пользовательские данные
+*.pdf  # если не хотите загружать PDF файлы
+*.txt  # если не хотите загружать TXT файлы
+
+# Авто-генерируемые файлы
+manifest.json  # если генерируете автоматически
