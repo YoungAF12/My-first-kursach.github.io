@@ -1,6 +1,6 @@
 // Конфигурация Firebase (замените на свою конфигурацию)
 const firebaseConfig = {
-   apiKey: "AIzaSyDqnau8N2mHjhOTMpxXqYe8EDGfxqGqQn0",
+  apiKey: "AIzaSyDqnau8N2mHjhOTMpxXqYe8EDGfxqGqQn0",
   authDomain: "my-first-kyrsachic.firebaseapp.com",
   projectId: "my-first-kyrsachic",
   storageBucket: "my-first-kyrsachic.firebasestorage.app",
