@@ -4,14 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IT Books Reader</title>
-    <meta name="theme-color" content="#8B7355">
     <link rel="stylesheet" href="style.css">
-    <link rel="manifest" href="manifest.json">
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <!-- PDF.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <!-- PDF.js (исправленная ссылка) -->
+    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -20,44 +18,30 @@
             <div class="controls">
                 <input type="file" id="file-input" accept=".txt,.pdf" style="display: none;">
                 <button id="load-btn">📁 Загрузить книгу</button>
-                <button id="theme-btn">🌙 Тема</button>
+                <button id="theme-btn">🌙 Тёмная тема</button>
                 <button id="fullscreen-btn">📺 Полный экран</button>
-                <button id="bookmark-btn" style="display: none;">📍 Закладка</button>
-                <button id="search-btn" style="display: none;">🔍 Поиск</button>
                 
                 <div class="font-controls">
-                    <button id="decrease-font-btn" title="Уменьшить шрифт (Стрелка вниз)">A-</button>
+                    <button id="decrease-font-btn" title="Уменьшить шрифт">A-</button>
                     <span id="font-size">16px</span>
-                    <button id="increase-font-btn" title="Увеличить шрифт (Стрелка вверх)">A+</button>
+                    <button id="increase-font-btn" title="Увеличить шрифт">A+</button>
                 </div>
                 
-                <!-- Навигация по PDF -->
+                <!-- Навигация PDF (скрыта по умолчанию) -->
                 <div id="pdf-nav" style="display: none;" class="pdf-nav">
-                    <button id="prev-page-btn" title="Предыдущая страница (Стрелка влево)">←</button>
+                    <button id="prev-page-btn" title="Предыдущая страница">←</button>
                     <span id="page-info">Стр. 1/1</span>
-                    <button id="next-page-btn" title="Следующая страница (Стрелка вправо)">→</button>
-                </div>
-                
-                <!-- Поиск (скрыт по умолчанию) -->
-                <div id="search-container" style="display: none;" class="search-container">
-                    <input type="text" id="search-input" placeholder="Поиск по тексту...">
-                    <button id="search-prev-btn">↑</button>
-                    <button id="search-next-btn">↓</button>
-                    <span id="search-results"></span>
-                    <button id="search-close-btn">✕</button>
+                    <button id="next-page-btn" title="Следующая страница">→</button>
                 </div>
             </div>
             
             <!-- Информация о текущей книге -->
             <div id="book-info" class="book-info" style="display: none;">
-                <div>
-                    <span id="book-title"></span>
-                    <div id="book-stats" style="font-size: 0.9em; color: #666; margin-top: 5px;"></div>
+                <div class="book-info-left">
+                    <span id="book-title">Название книги</span>
+                    <div id="book-meta" class="book-meta"></div>
                 </div>
-                <div class="book-actions">
-                    <button id="save-btn" title="Сохранить в облако">💾 Сохранить</button>
-                    <button id="export-btn" title="Экспорт настроек">📤 Экспорт</button>
-                </div>
+                <button id="save-btn" class="save-btn">💾 Сохранить в облако</button>
             </div>
         </header>
 
@@ -91,115 +75,40 @@
                         </div>
                     </div>
                     
-                    <div class="keyboard-hint">
-                        <h3>Горячие клавиши:</h3>
-                        <div class="keys">
-                            <div class="key-group">
-                                <kbd>←</kbd> <kbd>→</kbd>
-                                <span>Навигация по страницам</span>
-                            </div>
-                            <div class="key-group">
-                                <kbd>↑</kbd> <kbd>↓</kbd>
-                                <span>Размер шрифта</span>
-                            </div>
-                            <div class="key-group">
-                                <kbd>F</kbd>
-                                <span>Полный экран</span>
-                            </div>
-                            <div class="key-group">
-                                <kbd>ESC</kbd>
-                                <span>Выход из полного экрана</span>
-                            </div>
-                            <div class="key-group">
-                                <kbd>Ctrl+F</kbd>
-                                <span>Поиск</span>
-                            </div>
-                        </div>
-                    </div>
-                    
                     <button id="start-btn" class="big-btn">
                         📁 Начать чтение - выбрать файл
                     </button>
                     <p class="formats">Поддерживаемые форматы: .txt, .pdf (до 50MB)</p>
                     
-                    <!-- Восстановить последнюю книгу -->
-                    <div id="restore-session" class="restore-session" style="display: none;">
-                        <h3>↩️ Продолжить чтение</h3>
-                        <div id="last-book-info"></div>
-                        <button id="restore-btn" class="restore-btn">Продолжить</button>
-                    </div>
-                    
-                    <!-- Облачные книги -->
+                    <!-- Облачные книги (скрыто по умолчанию) -->
                     <div id="cloud-books" class="cloud-books" style="display: none;">
                         <h3>📚 Ваши облачные книги</h3>
-                        <div id="cloud-list" class="cloud-list"></div>
-                    </div>
-                    
-                    <!-- Закладки -->
-                    <div id="bookmarks-section" class="bookmarks-section" style="display: none;">
-                        <h3>📍 Ваши закладки</h3>
-                        <div id="bookmarks-list" class="bookmarks-list"></div>
+                        <div id="cloud-list" class="cloud-list">
+                            <!-- Список книг появится здесь -->
+                        </div>
                     </div>
                 </div>
             </div>
             
-            <!-- Контент книги -->
+            <!-- Контент книги (TXT) -->
             <div id="book-content" class="book-content" style="display: none;"></div>
             
             <!-- Контейнер для PDF -->
             <div id="pdf-viewer" style="display: none;"></div>
-            
-            <!-- Прогресс загрузки -->
-            <div id="progress-container" class="progress-container" style="display: none;">
-                <div class="progress-bar">
-                    <div class="progress-fill"></div>
-                </div>
-                <div class="progress-text">Загрузка...</div>
-            </div>
-            
-            <!-- Индикатор полного экрана -->
-            <div id="fullscreen-hint" class="fullscreen-hint" style="display: none;">
-                Полный экран • Нажмите ESC для выхода
-            </div>
         </main>
         
         <!-- Уведомления -->
         <div id="notification" class="notification"></div>
         
-        <!-- Мобильная навигация -->
-        <div id="mobile-nav" class="mobile-nav" style="display: none;">
-            <button id="mobile-prev-btn" class="mobile-nav-btn left">←</button>
-            <button id="mobile-next-btn" class="mobile-nav-btn right">→</button>
-        </div>
-        
-        <!-- Диалог закладок -->
-        <div id="bookmark-dialog" class="bookmark-dialog" style="display: none;">
-            <div class="bookmark-content">
-                <h3>Добавить закладку</h3>
-                <input type="text" id="bookmark-name" placeholder="Название закладки" value="Страница ">
-                <div class="bookmark-actions">
-                    <button id="bookmark-save-btn">Сохранить</button>
-                    <button id="bookmark-cancel-btn">Отмена</button>
-                </div>
-            </div>
+        <!-- Индикатор полного экрана -->
+        <div id="fullscreen-hint" class="fullscreen-hint" style="display: none;">
+            📺 Полный экран • Нажмите ESC для выхода
         </div>
     </div>
 
+    <!-- Подключение конфига Firebase -->
     <script src="firebase-config.js"></script>
+    <!-- Основной скрипт -->
     <script src="script.js"></script>
-    <script>
-        // Регистрация Service Worker
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(registration => {
-                        console.log('ServiceWorker зарегистрирован');
-                    })
-                    .catch(error => {
-                        console.log('ServiceWorker ошибка:', error);
-                    });
-            });
-        }
-    </script>
 </body>
 </html>
