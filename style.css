@@ -7,39 +7,44 @@
 
 :root {
     /* Светлая тема - цвета книжного переплета */
-    --primary-color: #8B7355; /* Коричневый кожанный переплет */
+    --primary-color: #8B7355;
     --primary-light: #A1886F;
     --primary-dark: #6B4F37;
-    --secondary-color: #5D4037; /* Темный коричневый */
-    --accent-color: #D7CCC8; /* Светлый бежевый */
+    --secondary-color: #5D4037;
+    --accent-color: #D7CCC8;
     
     /* Основные цвета */
-    --bg-color: #FAF3E0; /* Кремовый цвет страницы */
-    --text-color: #3E2723; /* Темно-коричневый текст */
-    --card-bg: #FFFFFF; /* Белый фон карточек */
-    --border-color: #D7CCC8; /* Светло-бежевая граница */
+    --bg-color: #FAF3E0;
+    --text-color: #3E2723;
+    --card-bg: #FFFFFF;
+    --border-color: #D7CCC8;
     --shadow: 0 2px 12px rgba(139, 115, 85, 0.1);
     --shadow-hover: 0 4px 20px rgba(139, 115, 85, 0.15);
     
     /* Дополнительные цвета */
-    --success-color: #689F38; /* Зеленый как мох */
-    --error-color: #D32F2F; /* Красный как печать */
-    --warning-color: #F57C00; /* Оранжевый */
-    --info-color: #0288D1; /* Синий */
+    --success-color: #689F38;
+    --error-color: #D32F2F;
+    --warning-color: #F57C00;
+    --info-color: #0288D1;
+    
+    /* Анимации */
+    --transition-speed: 0.3s;
+    --transition-easing: ease-in-out;
+    --border-radius: 12px;
 }
 
 /* Темная тема - ночное чтение */
 body.dark {
-    --primary-color: #C19A6B; /* Золотистый */
+    --primary-color: #C19A6B;
     --primary-light: #D4B483;
     --primary-dark: #A67C52;
     --secondary-color: #8D6E63;
     --accent-color: #5D4037;
     
-    --bg-color: #121212; /* Темный фон */
-    --text-color: #E0E0E0; /* Светлый текст */
-    --card-bg: #1E1E1E; /* Темные карточки */
-    --border-color: #424242; /* Темная граница */
+    --bg-color: #121212;
+    --text-color: #E0E0E0;
+    --card-bg: #1E1E1E;
+    --border-color: #424242;
     --shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
     --shadow-hover: 0 4px 20px rgba(0, 0, 0, 0.4);
     
@@ -54,7 +59,8 @@ body {
     background-color: var(--bg-color);
     color: var(--text-color);
     line-height: 1.8;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition: background-color var(--transition-speed) var(--transition-easing), 
+                color var(--transition-speed) var(--transition-easing);
     min-height: 100vh;
     overflow-x: hidden;
 }
@@ -98,16 +104,15 @@ body.dark::before {
 /* ==================== ШАПКА ==================== */
 header {
     background: var(--card-bg);
-    border-radius: 0 0 16px 16px;
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
     padding: 20px 30px;
     box-shadow: var(--shadow);
-    transition: all 0.3s ease;
+    transition: all var(--transition-speed) var(--transition-easing);
     border-top: 4px solid var(--primary-color);
     position: relative;
     overflow: hidden;
 }
 
-/* Декоративная полоска как у книги */
 header::before {
     content: '';
     position: absolute;
@@ -162,11 +167,11 @@ button {
     background: transparent;
     color: var(--primary-dark);
     border: 2px solid var(--primary-color);
-    border-radius: 8px;
+    border-radius: calc(var(--border-radius) - 4px);
     font-size: 0.95rem;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all var(--transition-speed) var(--transition-easing);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -175,17 +180,23 @@ button {
     letter-spacing: 0.5px;
     position: relative;
     overflow: hidden;
+    will-change: transform, background-color;
 }
 
-button:hover {
+button:hover:not(:disabled) {
     background: var(--primary-color);
     color: var(--bg-color);
     transform: translateY(-1px);
     box-shadow: var(--shadow);
 }
 
-button:active {
+button:active:not(:disabled) {
     transform: translateY(0);
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 /* Кнопка сохранения */
@@ -194,7 +205,7 @@ button:active {
     color: var(--success-color);
 }
 
-#save-btn:hover {
+#save-btn:hover:not(:disabled) {
     background: var(--success-color);
     color: var(--bg-color);
 }
@@ -221,6 +232,39 @@ button:active {
     color: var(--bg-color);
 }
 
+/* Кнопка закладки */
+#bookmark-btn {
+    border-color: var(--warning-color);
+    color: var(--warning-color);
+}
+
+#bookmark-btn:hover {
+    background: var(--warning-color);
+    color: var(--bg-color);
+}
+
+/* Кнопка поиска */
+#search-btn {
+    border-color: var(--info-color);
+    color: var(--info-color);
+}
+
+#search-btn:hover {
+    background: var(--info-color);
+    color: var(--bg-color);
+}
+
+/* Кнопка экспорта */
+#export-btn {
+    border-color: var(--primary-light);
+    color: var(--primary-light);
+}
+
+#export-btn:hover {
+    background: var(--primary-light);
+    color: var(--bg-color);
+}
+
 /* ==================== УПРАВЛЕНИЕ ШРИФТОМ ==================== */
 .font-controls {
     display: flex;
@@ -228,7 +272,7 @@ button:active {
     gap: 10px;
     background: rgba(139, 115, 85, 0.05);
     padding: 8px 15px;
-    border-radius: 8px;
+    border-radius: calc(var(--border-radius) - 4px);
     border: 1px solid var(--border-color);
 }
 
@@ -255,7 +299,7 @@ button:active {
     gap: 12px;
     background: rgba(139, 115, 85, 0.05);
     padding: 8px 15px;
-    border-radius: 8px;
+    border-radius: calc(var(--border-radius) - 4px);
     border: 1px solid var(--border-color);
 }
 
@@ -275,6 +319,70 @@ button:active {
     font-variant-numeric: tabular-nums;
 }
 
+/* ==================== ПОИСК ==================== */
+.search-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(139, 115, 85, 0.05);
+    padding: 8px 12px;
+    border-radius: calc(var(--border-radius) - 4px);
+    border: 1px solid var(--border-color);
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+#search-input {
+    padding: 6px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--card-bg);
+    color: var(--text-color);
+    min-width: 200px;
+    font-family: 'Georgia', serif;
+}
+
+#search-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+#search-prev-btn,
+#search-next-btn {
+    padding: 4px 10px;
+    min-width: 32px;
+    font-size: 0.85rem;
+}
+
+#search-results {
+    font-size: 0.85rem;
+    color: var(--secondary-color);
+    min-width: 80px;
+    text-align: center;
+}
+
+#search-close-btn {
+    padding: 4px 10px;
+    min-width: 32px;
+    background: var(--error-color);
+    color: white;
+    border: none;
+}
+
+#search-close-btn:hover {
+    background: #c62828;
+}
+
 /* ==================== ИНФОРМАЦИЯ О КНИГЕ ==================== */
 .book-info {
     display: flex;
@@ -282,7 +390,7 @@ button:active {
     align-items: center;
     padding: 15px 20px;
     background: rgba(139, 115, 85, 0.05);
-    border-radius: 8px;
+    border-radius: calc(var(--border-radius) - 4px);
     border-left: 4px solid var(--primary-color);
     margin-top: 15px;
     font-style: italic;
@@ -295,7 +403,18 @@ button:active {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    max-width: 70%;
+    max-width: 60%;
+}
+
+#book-stats {
+    font-size: 0.9rem;
+    color: var(--secondary-color);
+    opacity: 0.8;
+}
+
+.book-actions {
+    display: flex;
+    gap: 10px;
 }
 
 /* ==================== ГЛАВНЫЙ КОНТЕНТ ==================== */
@@ -320,7 +439,7 @@ main {
     text-align: center;
     background: var(--card-bg);
     padding: 40px;
-    border-radius: 16px;
+    border-radius: var(--border-radius);
     box-shadow: var(--shadow);
     border: 1px solid var(--border-color);
 }
@@ -352,11 +471,18 @@ main {
 .feature {
     background: rgba(139, 115, 85, 0.03);
     padding: 25px;
-    border-radius: 12px;
+    border-radius: calc(var(--border-radius) - 4px);
     border: 1px solid var(--border-color);
     text-align: center;
-    transition: all 0.3s ease;
+    transition: all var(--transition-speed) var(--transition-easing);
+    animation: fadeInUp 0.6s ease backwards;
+    will-change: transform, border-color;
 }
+
+.feature:nth-child(1) { animation-delay: 0.1s; }
+.feature:nth-child(2) { animation-delay: 0.2s; }
+.feature:nth-child(3) { animation-delay: 0.3s; }
+.feature:nth-child(4) { animation-delay: 0.4s; }
 
 .feature:hover {
     transform: translateY(-3px);
@@ -389,7 +515,7 @@ main {
 .keyboard-hint {
     background: rgba(139, 115, 85, 0.03);
     padding: 25px;
-    border-radius: 12px;
+    border-radius: calc(var(--border-radius) - 4px);
     margin: 30px 0;
     border: 1px solid var(--border-color);
 }
@@ -445,7 +571,7 @@ kbd {
     background: var(--primary-color);
     color: var(--bg-color);
     border: none;
-    border-radius: 12px;
+    border-radius: calc(var(--border-radius) - 4px);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -455,7 +581,7 @@ kbd {
     font-weight: 500;
     letter-spacing: 1px;
     text-transform: uppercase;
-    transition: all 0.3s ease;
+    transition: all var(--transition-speed) var(--transition-easing);
 }
 
 .big-btn:hover {
@@ -472,12 +598,52 @@ kbd {
     font-style: italic;
 }
 
+/* Восстановление сессии */
+.restore-session {
+    margin: 30px 0;
+    padding: 20px;
+    background: rgba(104, 159, 56, 0.1);
+    border-radius: calc(var(--border-radius) - 4px);
+    border: 1px solid var(--success-color);
+}
+
+.restore-session h3 {
+    color: var(--success-color);
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
+}
+
+#last-book-info {
+    background: var(--card-bg);
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    border: 1px solid var(--border-color);
+}
+
+.restore-btn {
+    background: var(--success-color);
+    color: white;
+    border: none;
+    padding: 10px 25px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all var(--transition-speed) var(--transition-easing);
+}
+
+.restore-btn:hover {
+    background: #558b2f;
+}
+
 /* Облачные книги */
 .cloud-books {
     margin-top: 40px;
     padding: 25px;
     background: rgba(139, 115, 85, 0.03);
-    border-radius: 12px;
+    border-radius: calc(var(--border-radius) - 4px);
     border: 1px solid var(--border-color);
 }
 
@@ -503,7 +669,7 @@ kbd {
     padding: 18px;
     border-radius: 8px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all var(--transition-speed) var(--transition-easing);
     border: 1px solid var(--border-color);
     text-align: left;
 }
@@ -528,10 +694,67 @@ kbd {
     font-size: 0.85rem;
 }
 
+/* Закладки */
+.bookmarks-section {
+    margin-top: 30px;
+    padding: 25px;
+    background: rgba(245, 124, 0, 0.05);
+    border-radius: calc(var(--border-radius) - 4px);
+    border: 1px solid var(--warning-color);
+}
+
+.bookmarks-section h3 {
+    font-size: 1.3rem;
+    margin-bottom: 20px;
+    color: var(--warning-color);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: center;
+    font-weight: 500;
+}
+
+.bookmarks-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 15px;
+}
+
+.bookmark-item {
+    background: var(--card-bg);
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: all var(--transition-speed) var(--transition-easing);
+}
+
+.bookmark-item:hover {
+    border-color: var(--warning-color);
+    transform: translateX(3px);
+}
+
+.bookmark-item strong {
+    color: var(--text-color);
+    font-size: 1rem;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.bookmark-item .bookmark-page {
+    color: var(--secondary-color);
+    font-size: 0.9rem;
+    background: rgba(245, 124, 0, 0.1);
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-top: 5px;
+}
+
 /* ==================== КОНТЕНТ КНИГИ ==================== */
 #book-content {
     background: var(--card-bg);
-    border-radius: 12px;
+    border-radius: var(--border-radius);
     padding: 35px;
     box-shadow: var(--shadow);
     border: 1px solid var(--border-color);
@@ -540,6 +763,7 @@ kbd {
     line-height: 1.9;
     font-size: 1.1rem;
     position: relative;
+    will-change: contents;
 }
 
 /* Эффект страницы книги */
@@ -556,7 +780,7 @@ kbd {
         rgba(139, 115, 85, 0.1) 70%, 
         transparent);
     pointer-events: none;
-    border-radius: 0 12px 12px 0;
+    border-radius: 0 var(--border-radius) var(--border-radius) 0;
 }
 
 #book-content pre {
@@ -573,10 +797,22 @@ kbd {
     word-wrap: break-word;
 }
 
+/* Подсветка поиска */
+.search-highlight {
+    background-color: rgba(255, 235, 59, 0.5);
+    padding: 2px 0;
+    border-radius: 3px;
+}
+
+.search-highlight.current {
+    background-color: rgba(255, 193, 7, 0.8);
+    box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.3);
+}
+
 /* ==================== PDF ПРОСМОТРЩИК ==================== */
 #pdf-viewer {
     background: var(--card-bg);
-    border-radius: 12px;
+    border-radius: var(--border-radius);
     padding: 25px;
     box-shadow: var(--shadow);
     border: 1px solid var(--border-color);
@@ -585,6 +821,7 @@ kbd {
     align-items: center;
     justify-content: center;
     position: relative;
+    will-change: contents;
 }
 
 /* Эффект страницы книги для PDF */
@@ -601,7 +838,7 @@ kbd {
         rgba(139, 115, 85, 0.1) 70%, 
         transparent);
     pointer-events: none;
-    border-radius: 0 12px 12px 0;
+    border-radius: 0 var(--border-radius) var(--border-radius) 0;
 }
 
 #pdf-viewer canvas {
@@ -612,6 +849,8 @@ kbd {
     display: block;
     margin: 0 auto;
     border: 1px solid var(--border-color);
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
 }
 
 body.dark #pdf-viewer canvas {
@@ -642,11 +881,6 @@ body.dark #pdf-viewer canvas {
     animation: spin 1s linear infinite;
 }
 
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
 .pdf-error {
     display: flex;
     flex-direction: column;
@@ -657,6 +891,44 @@ body.dark #pdf-viewer canvas {
     font-size: 1.1rem;
     text-align: center;
     padding: 20px;
+    font-style: italic;
+}
+
+/* Прогресс загрузки */
+.progress-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--card-bg);
+    padding: 30px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border-color);
+    z-index: 1000;
+    min-width: 300px;
+    text-align: center;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 20px;
+    background: rgba(139, 115, 85, 0.1);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 15px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-color), var(--primary-light));
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    color: var(--text-color);
+    font-size: 1rem;
     font-style: italic;
 }
 
@@ -711,17 +983,6 @@ body.dark #pdf-viewer canvas {
     to {
         transform: translateX(0);
         opacity: 1;
-    }
-}
-
-@keyframes slideOutRight {
-    from {
-        transform: translateX(0);
-        opacity: 1;
-    }
-    to {
-        transform: translateX(100%);
-        opacity: 0;
     }
 }
 
@@ -801,7 +1062,7 @@ body.dark #pdf-viewer canvas {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all var(--transition-speed) var(--transition-easing);
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -817,6 +1078,65 @@ body.dark #pdf-viewer canvas {
 
 .mobile-nav-btn.right {
     margin-left: auto;
+}
+
+/* Диалог закладок */
+.bookmark-dialog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10002;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.bookmark-content {
+    background: var(--card-bg);
+    padding: 30px;
+    border-radius: var(--border-radius);
+    min-width: 350px;
+    max-width: 500px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border-color);
+}
+
+.bookmark-content h3 {
+    margin-bottom: 20px;
+    color: var(--primary-dark);
+    font-weight: 500;
+}
+
+#bookmark-name {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--card-bg);
+    color: var(--text-color);
+    font-family: 'Georgia', serif;
+    font-size: 1rem;
+    margin-bottom: 20px;
+}
+
+#bookmark-name:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.bookmark-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
 }
 
 /* Для телефонов - скрыть стандартную навигацию в полноэкранном режиме */
@@ -892,9 +1212,29 @@ body.dark #pdf-viewer canvas {
     }
     
     .font-controls,
-    .pdf-nav {
+    .pdf-nav,
+    .search-container {
         justify-content: center;
         padding: 10px;
+    }
+    
+    .search-container {
+        flex-wrap: wrap;
+    }
+    
+    #search-input {
+        min-width: 100%;
+        order: 1;
+    }
+    
+    #search-results {
+        order: 2;
+    }
+    
+    #search-prev-btn,
+    #search-next-btn,
+    #search-close-btn {
+        order: 3;
     }
     
     button {
@@ -962,6 +1302,11 @@ body.dark #pdf-viewer canvas {
         font-size: 0.95rem;
     }
     
+    .book-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+    
     #book-title {
         max-width: 100%;
         white-space: normal;
@@ -994,6 +1339,11 @@ body.dark #pdf-viewer canvas {
         height: 48px;
         font-size: 20px;
     }
+    
+    .bookmark-content {
+        min-width: 280px;
+        margin: 0 15px;
+    }
 }
 
 /* ==================== АДАПТИВНОСТЬ ДЛЯ ПЛАНШЕТОВ (481px - 768px) ==================== */
@@ -1018,7 +1368,8 @@ body.dark #pdf-viewer canvas {
         grid-template-columns: repeat(2, 1fr);
     }
     
-    .cloud-list {
+    .cloud-list,
+    .bookmarks-list {
         grid-template-columns: repeat(2, 1fr);
     }
     
@@ -1028,6 +1379,16 @@ body.dark #pdf-viewer canvas {
     
     .big-btn {
         min-width: 240px;
+    }
+    
+    .book-info {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .book-actions {
+        width: 100%;
+        justify-content: center;
     }
 }
 
@@ -1098,16 +1459,6 @@ body.dark #pdf-viewer canvas {
     border-radius: 4px;
 }
 
-/* ==================== АНИМАЦИИ ПОЯВЛЕНИЯ ==================== */
-.feature {
-    animation: fadeInUp 0.6s ease backwards;
-}
-
-.feature:nth-child(1) { animation-delay: 0.1s; }
-.feature:nth-child(2) { animation-delay: 0.2s; }
-.feature:nth-child(3) { animation-delay: 0.3s; }
-.feature:nth-child(4) { animation-delay: 0.4s; }
-
 @keyframes fadeInUp {
     from {
         opacity: 0;
@@ -1119,6 +1470,11 @@ body.dark #pdf-viewer canvas {
     }
 }
 
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
 /* ==================== ПЕЧАТЬ ==================== */
 @media print {
     .controls,
@@ -1126,7 +1482,9 @@ body.dark #pdf-viewer canvas {
     .notification,
     .fullscreen-hint,
     .mobile-nav,
-    header {
+    header,
+    .bookmark-dialog,
+    .progress-container {
         display: none !important;
     }
     
