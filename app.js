@@ -1,4 +1,4 @@
-// Конфигурация Firebase (замените на свою конфигурацию)
+// Конфигурация Firebase (ЗАМЕНИТЕ НА ВАШУ КОНФИГУРАЦИЮ)
 const firebaseConfig = {
   apiKey: "AIzaSyDqnau8N2mHjhOTMpxXqYe8EDGfxqGqQn0",
   authDomain: "my-first-kyrsachic.firebaseapp.com",
@@ -14,90 +14,6 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 const storage = firebase.storage();
-
-// Данные о книгах (в реальном приложении будут загружаться из Firestore)
-const booksData = [
-    {
-        id: 1,
-        title: "Мастер и Маргарита",
-        author: "Михаил Булгаков",
-        description: "Одно из самых загадочных произведений русской литературы XX века, сочетающее в себе мистику, сатиру и философские размышления.",
-        category: "Классика",
-        cover: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-        fileUrl: "https://example.com/books/master_and_margarita.pdf",
-        downloads: 1250
-    },
-    {
-        id: 2,
-        title: "1984",
-        author: "Джордж Оруэлл",
-        description: "Антиутопический роман, описывающий тоталитарное общество под постоянным наблюдением Большого Брата.",
-        category: "Научная фантастика",
-        cover: "https://images.unsplash.com/photo-1516979187457-637abb4f9353?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-        fileUrl: "https://example.com/books/1984.pdf",
-        downloads: 890
-    },
-    {
-        id: 3,
-        title: "Преступление и наказание",
-        author: "Фёдор Достоевский",
-        description: "Психологический роман, исследующий моральные дилеммы и внутренние терзания главного героя, студента Родиона Раскольникова.",
-        category: "Классика",
-        cover: "https://images.unsplash.com/photo-1589829085413-56de8ae18c73?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-        fileUrl: "https://example.com/books/crime_and_punishment.pdf",
-        downloads: 1100
-    },
-    {
-        id: 4,
-        title: "Гарри Поттер и философский камень",
-        author: "Дж. К. Роулинг",
-        description: "Первая книга из серии о юном волшебнике Гарри Поттере, который узнаёт о своём магическом происхождении и поступает в школу Хогвартс.",
-        category: "Фэнтези",
-        cover: "https://images.unsplash.com/photo-1600189261867-30e5ffe7b8da?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-        fileUrl: "https://example.com/books/harry_potter.pdf",
-        downloads: 2500
-    },
-    {
-        id: 5,
-        title: "Война и мир",
-        author: "Лев Толстой",
-        description: "Эпический роман, описывающий русское общество в эпоху войн против Наполеона. Одно из величайших произведений мировой литературы.",
-        category: "Классика",
-        cover: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-        fileUrl: "https://example.com/books/war_and_peace.pdf",
-        downloads: 950
-    },
-    {
-        id: 6,
-        title: "Маленький принц",
-        author: "Антуан де Сент-Экзюпери",
-        description: "Философская сказка о маленьком мальчике с далёкой планеты, которая учит ценить простые человеческие истины.",
-        category: "Детская литература",
-        cover: "https://images.unsplash.com/photo-1512820790803-83ca734da794?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-        fileUrl: "https://example.com/books/little_prince.pdf",
-        downloads: 1800
-    },
-    {
-        id: 7,
-        title: "Атлант расправил плечи",
-        author: "Айн Рэнд",
-        description: "Роман, излагающий философию объективизма через историю борьбы талантливых индивидуумов против подавляющего их общества.",
-        category: "Философия",
-        cover: "https://images.unsplash.com/photo-1509112756314-34a0badb29d4?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-        fileUrl: "https://example.com/books/atlas_shrugged.pdf",
-        downloads: 720
-    },
-    {
-        id: 8,
-        title: "Шерлок Холмс: Сборник рассказов",
-        author: "Артур Конан Дойл",
-        description: "Сборник детективных рассказов о знаменитом сыщике Шерлоке Холмсе и его верном друге докторе Ватсоне.",
-        category: "Детектив",
-        cover: "https://images.unsplash.com/photo-1531901599638-a89bb60971a3?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-        fileUrl: "https://example.com/books/sherlock_holmes.pdf",
-        downloads: 1600
-    }
-];
 
 // Категории книг
 const categories = ["Все", "Классика", "Фэнтези", "Научная фантастика", "Детектив", "Детская литература", "Философия"];
@@ -125,10 +41,90 @@ const showLogin = document.getElementById('showLogin');
 // Инициализация приложения
 document.addEventListener('DOMContentLoaded', function() {
     initCategories();
-    displayBooks(booksData);
+    loadBooksFromFirestore();
     initAuth();
     setupEventListeners();
 });
+
+// Загрузка книг из Firestore
+function loadBooksFromFirestore() {
+    loadingBooks.style.display = 'block';
+    
+    db.collection("books").get()
+        .then((querySnapshot) => {
+            const booksData = [];
+            querySnapshot.forEach((doc) => {
+                const book = doc.data();
+                book.id = doc.id;
+                booksData.push(book);
+            });
+            
+            // Если книг нет в Firestore, используем демо-данные
+            if (booksData.length === 0) {
+                console.log("No books found in Firestore, using demo data");
+                useDemoBooks();
+            } else {
+                displayBooks(booksData);
+            }
+        })
+        .catch((error) => {
+            console.log("Error loading books:", error);
+            useDemoBooks();
+        });
+}
+
+// Использование демо-книг (если Firestore пуст)
+function useDemoBooks() {
+    const demoBooks = [
+        {
+            id: 1,
+            title: "Мастер и Маргарита",
+            author: "Михаил Булгаков",
+            description: "Одно из самых загадочных произведений русской литературы XX века, сочетающее в себе мистику, сатиру и философские размышления.",
+            category: "Классика",
+            cover: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+            fileUrl: "https://www.gutenberg.org/files/1259/1259-0.txt",
+            downloads: 1250
+        },
+        {
+            id: 2,
+            title: "1984",
+            author: "Джордж Оруэлл",
+            description: "Антиутопический роман, описывающий тоталитарное общество под постоянным наблюдением Большого Брата.",
+            category: "Научная фантастика",
+            cover: "https://images.unsplash.com/photo-1516979187457-637abb4f9353?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+            fileUrl: "https://www.gutenberg.org/files/1259/1259-0.txt",
+            downloads: 890
+        },
+        {
+            id: 3,
+            title: "Преступление и наказание",
+            author: "Фёдор Достоевский",
+            description: "Психологический роман, исследующий моральные дилеммы и внутренние терзания главного героя, студента Родиона Раскольникова.",
+            category: "Классика",
+            cover: "https://images.unsplash.com/photo-1589829085413-56de8ae18c73?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+            fileUrl: "https://www.gutenberg.org/files/1259/1259-0.txt",
+            downloads: 1100
+        },
+        {
+            id: 4,
+            title: "Гарри Поттер и философский камень",
+            author: "Дж. К. Роулинг",
+            description: "Первая книга из серии о юном волшебнике Гарри Поттере, который узнаёт о своём магическом происхождении и поступает в школу Хогвартс.",
+            category: "Фэнтези",
+            cover: "https://images.unsplash.com/photo-1600189261867-30e5ffe7b8da?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+            fileUrl: "https://www.gutenberg.org/files/1259/1259-0.txt",
+            downloads: 2500
+        }
+    ];
+    
+    displayBooks(demoBooks);
+    
+    // Добавляем демо-книги в Firestore для будущего использования
+    demoBooks.forEach(book => {
+        db.collection("books").add(book).catch(error => console.log("Error adding demo book:", error));
+    });
+}
 
 // Инициализация категорий
 function initCategories() {
@@ -158,7 +154,7 @@ function displayBooks(books) {
         bookCard.className = 'book-card';
         bookCard.innerHTML = `
             <div class="book-cover">
-                <img src="${book.cover}" alt="${book.title}">
+                <img src="${book.cover}" alt="${book.title}" onerror="this.src='https://images.unsplash.com/photo-1541963463532-d68292c34b19?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80'">
             </div>
             <div class="book-info">
                 <h3 class="book-title">${book.title}</h3>
@@ -186,6 +182,8 @@ function displayBooks(books) {
 }
 
 // Фильтрация книг по категории
+let allBooks = [];
+
 function filterByCategory(e) {
     const category = e.target.dataset.category;
     
@@ -195,40 +193,52 @@ function filterByCategory(e) {
     });
     e.target.classList.add('active');
     
-    // Фильтруем книги
-    let filteredBooks;
-    if (category === 'Все') {
-        filteredBooks = booksData;
-    } else {
-        filteredBooks = booksData.filter(book => book.category === category);
-    }
+    // Получаем все книги из DOM
+    const bookCards = document.querySelectorAll('.book-card');
     
-    displayBooks(filteredBooks);
+    if (category === 'Все') {
+        // Показываем все книги
+        bookCards.forEach(card => {
+            card.style.display = 'block';
+        });
+    } else {
+        // Фильтруем по категории
+        bookCards.forEach(card => {
+            const bookCategory = card.querySelector('.book-category').textContent;
+            if (bookCategory === category) {
+                card.style.display = 'block';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
 }
 
 // Поиск книг
 function searchBooks() {
     const searchTerm = searchInput.value.toLowerCase().trim();
+    const bookCards = document.querySelectorAll('.book-card');
     
     if (searchTerm === '') {
-        // Если поисковой запрос пуст, показываем все книги
+        // Показываем все книги текущей категории
         const activeCategory = document.querySelector('.category-btn.active').dataset.category;
-        if (activeCategory === 'Все') {
-            displayBooks(booksData);
-        } else {
-            displayBooks(booksData.filter(book => book.category === activeCategory));
-        }
+        filterByCategory({ target: document.querySelector(`[data-category="${activeCategory}"]`) });
         return;
     }
     
-    const filteredBooks = booksData.filter(book => 
-        book.title.toLowerCase().includes(searchTerm) || 
-        book.author.toLowerCase().includes(searchTerm) || 
-        book.category.toLowerCase().includes(searchTerm) ||
-        book.description.toLowerCase().includes(searchTerm)
-    );
-    
-    displayBooks(filteredBooks);
+    bookCards.forEach(card => {
+        const title = card.querySelector('.book-title').textContent.toLowerCase();
+        const author = card.querySelector('.book-author').textContent.toLowerCase();
+        const description = card.querySelector('.book-description').textContent.toLowerCase();
+        const category = card.querySelector('.book-category').textContent.toLowerCase();
+        
+        if (title.includes(searchTerm) || author.includes(searchTerm) || 
+            description.includes(searchTerm) || category.includes(searchTerm)) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
 }
 
 // Скачивание книги
@@ -239,25 +249,34 @@ function downloadBook(bookId) {
         return;
     }
     
-    const book = booksData.find(b => b.id == bookId);
-    if (book) {
-        // В реальном приложении здесь будет логика скачивания из Firebase Storage
-        alert(`Начинается скачивание книги "${book.title}"`);
-        
-        // Имитация скачивания
-        const link = document.createElement('a');
-        link.href = book.fileUrl;
-        link.download = `${book.title}.pdf`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        // Увеличиваем счетчик скачиваний
-        book.downloads++;
-        
-        // В реальном приложении здесь будет обновление в Firestore
-        console.log(`Книга "${book.title}" скачана пользователем ${currentUser.email}`);
-    }
+    // Находим книгу
+    const bookCard = document.querySelector(`[data-id="${bookId}"]`).closest('.book-card');
+    const title = bookCard.querySelector('.book-title').textContent;
+    const author = bookCard.querySelector('.book-author').textContent;
+    
+    alert(`Начинается скачивание книги "${title}"`);
+    
+    // Имитация скачивания
+    const link = document.createElement('a');
+    link.href = 'https://www.gutenberg.org/files/1259/1259-0.txt'; // Демо-файл
+    link.download = `${title} - ${author}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Обновляем счетчик скачиваний в Firestore (если книга есть в Firestore)
+    db.collection("books").doc(bookId).get()
+        .then((doc) => {
+            if (doc.exists) {
+                const currentDownloads = doc.data().downloads || 0;
+                db.collection("books").doc(bookId).update({
+                    downloads: currentDownloads + 1
+                });
+            }
+        })
+        .catch(error => console.log("Error updating download count:", error));
+    
+    console.log(`Книга "${title}" скачана пользователем ${currentUser.email}`);
 }
 
 // Инициализация аутентификации
@@ -276,20 +295,11 @@ function initAuth() {
 
 // Обновление интерфейса для авторизованного пользователя
 function updateUIForLoggedInUser() {
-    loginBtn.style.display = 'none';
-    registerBtn.style.display = 'none';
-    
-    // Создаем элемент информации о пользователе
-    const userInfo = document.createElement('div');
-    userInfo.className = 'user-info';
-    userInfo.innerHTML = `
+    const userContainer = document.querySelector('.user-info');
+    userContainer.innerHTML = `
         <span>${currentUser.displayName || currentUser.email}</span>
         <button id="logoutBtn" class="btn btn-outline">Выйти</button>
     `;
-    
-    // Заменяем кнопки входа и регистрации на информацию о пользователе
-    const userContainer = document.querySelector('.user-info');
-    userContainer.innerHTML = userInfo.innerHTML;
     
     // Добавляем обработчик для кнопки выхода
     document.getElementById('logoutBtn').addEventListener('click', logout);
@@ -320,9 +330,31 @@ function login(email, password) {
             loginModal.style.display = 'none';
             loginForm.reset();
             alert('Вход выполнен успешно!');
+            
+            // Сохраняем информацию о пользователе в Firestore
+            const user = userCredential.user;
+            db.collection("users").doc(user.uid).set({
+                email: user.email,
+                name: user.displayName,
+                lastLogin: new Date().toISOString()
+            }, { merge: true });
         })
         .catch(error => {
-            alert(`Ошибка входа: ${error.message}`);
+            let errorMessage = 'Ошибка входа: ';
+            switch (error.code) {
+                case 'auth/invalid-email':
+                    errorMessage += 'Неверный формат email';
+                    break;
+                case 'auth/user-not-found':
+                    errorMessage += 'Пользователь не найден';
+                    break;
+                case 'auth/wrong-password':
+                    errorMessage += 'Неверный пароль';
+                    break;
+                default:
+                    errorMessage += error.message;
+            }
+            alert(errorMessage);
         });
 }
 
@@ -336,12 +368,36 @@ function register(name, email, password) {
             });
         })
         .then(() => {
+            // Сохраняем информацию о пользователе в Firestore
+            const user = auth.currentUser;
+            return db.collection("users").doc(user.uid).set({
+                name: name,
+                email: email,
+                createdAt: new Date().toISOString(),
+                role: 'user'
+            });
+        })
+        .then(() => {
             registerModal.style.display = 'none';
             registerForm.reset();
             alert('Регистрация выполнена успешно!');
         })
         .catch(error => {
-            alert(`Ошибка регистрации: ${error.message}`);
+            let errorMessage = 'Ошибка регистрации: ';
+            switch (error.code) {
+                case 'auth/email-already-in-use':
+                    errorMessage += 'Email уже используется';
+                    break;
+                case 'auth/invalid-email':
+                    errorMessage += 'Неверный формат email';
+                    break;
+                case 'auth/weak-password':
+                    errorMessage += 'Пароль слишком слабый (минимум 6 символов)';
+                    break;
+                default:
+                    errorMessage += error.message;
+            }
+            alert(errorMessage);
         });
 }
 
@@ -413,6 +469,11 @@ function setupEventListeners() {
         
         if (password !== confirmPassword) {
             alert('Пароли не совпадают');
+            return;
+        }
+        
+        if (password.length < 6) {
+            alert('Пароль должен содержать минимум 6 символов');
             return;
         }
         
