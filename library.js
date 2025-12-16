@@ -10,7 +10,42 @@ class LibraryManager {
             format: '',
             sort: 'newest'
         };
+        this.initTheme();
         this.init();
+    }
+    
+    initTheme() {
+        // Применяем сохранённую тему
+        const savedTheme = localStorage.getItem('digital-library-theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        
+        // Инициализация переключателя темы на странице библиотеки
+        const themeToggle = document.getElementById('themeToggle');
+        if (themeToggle) {
+            themeToggle.addEventListener('click', () => this.toggleTheme());
+            this.updateThemeIcon();
+        }
+    }
+    
+    toggleTheme() {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('digital-library-theme', newTheme);
+        this.updateThemeIcon();
+    }
+    
+    updateThemeIcon() {
+        const icon = document.querySelector('#themeToggle i');
+        if (icon) {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            icon.className = currentTheme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+            // Обновляем текст
+            const text = icon.nextElementSibling;
+            if (text) {
+                text.textContent = currentTheme === 'light' ? 'Тёмная' : 'Светлая';
+            }
+        }
     }
     
     init() {
@@ -32,56 +67,73 @@ class LibraryManager {
         const sortFilter = document.getElementById('sortFilter');
         const resetBtn = document.getElementById('resetFilters');
         
-        genreFilter.addEventListener('change', () => {
-            this.currentFilters.genre = genreFilter.value;
-            this.currentPage = 1;
-            this.displayLibrary();
-        });
+        if (genreFilter) {
+            genreFilter.addEventListener('change', () => {
+                this.currentFilters.genre = genreFilter.value;
+                this.currentPage = 1;
+                this.displayLibrary();
+            });
+        }
         
-        formatFilter.addEventListener('change', () => {
-            this.currentFilters.format = formatFilter.value;
-            this.currentPage = 1;
-            this.displayLibrary();
-        });
+        if (formatFilter) {
+            formatFilter.addEventListener('change', () => {
+                this.currentFilters.format = formatFilter.value;
+                this.currentPage = 1;
+                this.displayLibrary();
+            });
+        }
         
-        sortFilter.addEventListener('change', () => {
-            this.currentFilters.sort = sortFilter.value;
-            this.currentPage = 1;
-            this.displayLibrary();
-        });
+        if (sortFilter) {
+            sortFilter.addEventListener('change', () => {
+                this.currentFilters.sort = sortFilter.value;
+                this.currentPage = 1;
+                this.displayLibrary();
+            });
+        }
         
-        resetBtn.addEventListener('click', () => {
-            this.resetFilters();
-        });
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                this.resetFilters();
+            });
+        }
     }
     
     initSearch() {
         const searchInput = document.getElementById('searchInput');
         const clearSearch = document.getElementById('clearSearch');
         
-        let searchTimeout;
-        searchInput.addEventListener('input', (e) => {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                this.currentFilters.search = e.target.value.trim();
+        if (searchInput) {
+            let searchTimeout;
+            searchInput.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    this.currentFilters.search = e.target.value.trim();
+                    this.currentPage = 1;
+                    this.displayLibrary();
+                }, 300);
+            });
+        }
+        
+        if (clearSearch) {
+            clearSearch.addEventListener('click', () => {
+                if (searchInput) searchInput.value = '';
+                this.currentFilters.search = '';
                 this.currentPage = 1;
                 this.displayLibrary();
-            }, 300);
-        });
-        
-        clearSearch.addEventListener('click', () => {
-            searchInput.value = '';
-            this.currentFilters.search = '';
-            this.currentPage = 1;
-            this.displayLibrary();
-        });
+            });
+        }
     }
     
     resetFilters() {
-        document.getElementById('genreFilter').value = '';
-        document.getElementById('formatFilter').value = '';
-        document.getElementById('sortFilter').value = 'newest';
-        document.getElementById('searchInput').value = '';
+        const genreFilter = document.getElementById('genreFilter');
+        const formatFilter = document.getElementById('formatFilter');
+        const sortFilter = document.getElementById('sortFilter');
+        const searchInput = document.getElementById('searchInput');
+        
+        if (genreFilter) genreFilter.value = '';
+        if (formatFilter) formatFilter.value = '';
+        if (sortFilter) sortFilter.value = 'newest';
+        if (searchInput) searchInput.value = '';
         
         this.currentFilters = {
             search: '',
@@ -128,6 +180,8 @@ class LibraryManager {
                 return books.sort((a, b) => b.title.localeCompare(a.title));
             case 'views':
                 return books.sort((a, b) => (b.views || 0) - (a.views || 0));
+            case 'downloads':
+                return books.sort((a, b) => (b.downloads || 0) - (a.downloads || 0));
             default:
                 return books;
         }
@@ -137,6 +191,8 @@ class LibraryManager {
         const booksGrid = document.getElementById('booksGrid');
         const emptyState = document.getElementById('emptyState');
         const loadingState = document.getElementById('loadingState');
+        
+        if (!booksGrid || !emptyState || !loadingState) return;
         
         // Показываем состояние загрузки
         booksGrid.innerHTML = '';
@@ -187,6 +243,19 @@ class LibraryManager {
                     </div>
                     <h3 class="book-title">${book.title}</h3>
                     <p class="book-author">${book.author}</p>
+                    
+                    <!-- Информация о загрузившем -->
+                    ${book.uploadedBy ? `
+                        <div class="book-uploader">
+                            <i class="fas fa-user"></i>
+                            <span class="uploader-name" 
+                                  onclick="userManager.showProfile('${book.uploadedBy}')"
+                                  style="cursor: pointer;">
+                                ${book.uploadedByName}
+                            </span>
+                        </div>
+                    ` : ''}
+                    
                     <p class="book-description">${book.description || 'Без описания'}</p>
                     
                     <div class="book-stats">
@@ -207,7 +276,7 @@ class LibraryManager {
                     <div class="book-actions">
                         <button class="action-btn preview-btn">
                             <i class="fas fa-eye"></i>
-                            Просмотр
+                            Читать
                         </button>
                         <button class="action-btn download-btn">
                             <i class="fas fa-download"></i>
@@ -220,12 +289,15 @@ class LibraryManager {
     }
     
     addBookEventListeners() {
-        // Кнопки просмотра
+        // Кнопки чтения
         document.querySelectorAll('.preview-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const bookCard = e.target.closest('.book-card');
                 const bookId = bookCard.dataset.id;
-                this.showBookPreview(bookId);
+                const book = bookStorage.getBookById(bookId);
+                if (book && window.bookViewer) {
+                    window.bookViewer.showBook(book);
+                }
             });
         });
         
@@ -237,194 +309,71 @@ class LibraryManager {
                 this.downloadBook(bookId);
             });
         });
-    }
-    
-    showBookPreview(bookId) {
-        const book = bookStorage.getBookById(bookId);
-        if (!book) return;
         
-        // Увеличиваем счетчик просмотров
-        bookStorage.incrementViews(bookId);
-        
-        const modal = document.getElementById('bookModal');
-        const modalContent = document.getElementById('bookModalContent');
-        
-        modalContent.innerHTML = `
-            <div class="book-preview">
-                <div class="preview-header">
-                    <div class="preview-cover">
-                        <i class="fas fa-${book.format === 'pdf' ? 'file-pdf' : 'file-alt'}"></i>
-                        <span class="preview-format">${book.format.toUpperCase()}</span>
-                    </div>
-                    <div class="preview-info">
-                        <h2>${book.title}</h2>
-                        <p class="preview-author">${book.author}</p>
-                        <div class="preview-meta">
-                            <span><i class="fas fa-tag"></i> ${book.genre}</span>
-                            <span><i class="fas fa-calendar"></i> ${this.formatDate(book.dateAdded)}</span>
-                            <span><i class="fas fa-file"></i> ${this.formatFileSize(book.size || 0)}</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="preview-content">
-                    <h3><i class="fas fa-align-left"></i> Описание</h3>
-                    <p>${book.description || 'Описание отсутствует'}</p>
-                    
-                    <h3><i class="fas fa-chart-bar"></i> Статистика</h3>
-                    <div class="preview-stats">
-                        <div class="stat-item">
-                            <div class="stat-value">${book.views || 0}</div>
-                            <div class="stat-label">Просмотров</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value">${book.downloads || 0}</div>
-                            <div class="stat-label">Скачиваний</div>
-                        </div>
-                    </div>
-                    
-                    <div class="preview-actions">
-                        <button class="btn-preview read-btn" data-id="${book.id}">
-                            <i class="fas fa-book-reader"></i>
-                            Читать книгу
-                        </button>
-                        <button class="btn-preview download-btn" data-id="${book.id}">
-                            <i class="fas fa-download"></i>
-                            Скачать (${book.format.toUpperCase()})
-                        </button>
-                    </div>
-                    
-                    ${book.format === 'txt' && book.fileContent ? `
-                        <div class="text-preview">
-                            <h3><i class="fas fa-file-alt"></i> Предпросмотр</h3>
-                            <div class="text-content">
-                                ${this.escapeHtml(book.fileContent.substring(0, 1000))}
-                                ${book.fileContent.length > 1000 ? '...' : ''}
-                            </div>
-                        </div>
-                    ` : ''}
-                </div>
-            </div>
-        `;
-        
-        modal.classList.add('active');
-        
-        // Обработчики для кнопок в модальном окне
-        modalContent.querySelector('.read-btn').addEventListener('click', (e) => {
-            this.readBook(book.id);
+        // Клик по имени пользователя
+        document.querySelectorAll('.uploader-name').forEach(name => {
+            name.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const bookCard = e.target.closest('.book-card');
+                const bookId = bookCard.dataset.id;
+                const book = bookStorage.getBookById(bookId);
+                if (book && book.uploadedBy && window.userManager) {
+                    window.userManager.showProfile(book.uploadedBy);
+                }
+            });
         });
-        
-        modalContent.querySelector('.download-btn').addEventListener('click', (e) => {
-            this.downloadBook(book.id);
-        });
-        
-        // Закрытие модального окна
-        document.getElementById('closeBookModal').addEventListener('click', () => {
-            modal.classList.remove('active');
-        });
-        
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.classList.remove('active');
-            }
-        });
-    }
-    
-    readBook(bookId) {
-        const book = bookStorage.getBookById(bookId);
-        if (!book) return;
-        
-        // Для TXT файлов открываем в новом окне
-        if (book.format === 'txt' && book.fileContent) {
-            const newWindow = window.open();
-            newWindow.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>${book.title} - Digital Library</title>
-                    <style>
-                        body {
-                            font-family: Arial, sans-serif;
-                            line-height: 1.6;
-                            max-width: 800px;
-                            margin: 0 auto;
-                            padding: 2rem;
-                            background: #f5f5f5;
-                        }
-                        .book-content {
-                            background: white;
-                            padding: 2rem;
-                            border-radius: 8px;
-                            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-                            white-space: pre-wrap;
-                            word-wrap: break-word;
-                        }
-                        .book-header {
-                            margin-bottom: 2rem;
-                            border-bottom: 2px solid #4f46e5;
-                            padding-bottom: 1rem;
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div class="book-content">
-                        <div class="book-header">
-                            <h1>${this.escapeHtml(book.title)}</h1>
-                            <h3>${this.escapeHtml(book.author)}</h3>
-                        </div>
-                        ${this.escapeHtml(book.fileContent)}
-                    </div>
-                </body>
-                </html>
-            `);
-            newWindow.document.close();
-        } else {
-            // Для PDF файлов показываем сообщение
-            this.showNotification('Для просмотра PDF файлов используйте скачивание', 'info');
-        }
-        
-        this.showNotification(`Открываем "${book.title}"`, 'success');
     }
     
     downloadBook(bookId) {
         const book = bookStorage.getBookById(bookId);
-        if (!book) return;
-        
-        bookStorage.incrementDownloads(bookId);
-        
-        if (book.fileContent) {
-            let blob, fileName;
+        if (book) {
+            bookStorage.incrementDownloads(bookId);
             
-            if (book.format === 'txt') {
-                blob = new Blob([book.fileContent], { type: 'text/plain;charset=utf-8' });
-                fileName = `${book.title}.txt`;
-            } else {
-                // Для base64 PDF
-                const byteCharacters = atob(book.fileContent.split(',')[1]);
-                const byteNumbers = new Array(byteCharacters.length);
-                for (let i = 0; i < byteCharacters.length; i++) {
-                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+            // Создаем временную ссылку для скачивания
+            if (book.fileContent) {
+                let blob, fileName;
+                
+                if (book.format === 'txt') {
+                    blob = new Blob([book.fileContent], { type: 'text/plain;charset=utf-8' });
+                    fileName = `${book.title}.txt`;
+                } else if (book.format === 'pdf') {
+                    // Для base64 PDF
+                    if (book.fileContent.startsWith('data:application/pdf;base64,')) {
+                        const base64Data = book.fileContent.split(',')[1];
+                        const binaryData = atob(base64Data);
+                        const bytes = new Uint8Array(binaryData.length);
+                        
+                        for (let i = 0; i < binaryData.length; i++) {
+                            bytes[i] = binaryData.charCodeAt(i);
+                        }
+                        
+                        blob = new Blob([bytes], { type: 'application/pdf' });
+                        fileName = `${book.title}.pdf`;
+                    } else {
+                        blob = new Blob([book.fileContent], { type: 'application/pdf' });
+                        fileName = `${book.title}.pdf`;
+                    }
                 }
-                const byteArray = new Uint8Array(byteNumbers);
-                blob = new Blob([byteArray], { type: 'application/pdf' });
-                fileName = `${book.title}.pdf`;
+                
+                if (blob) {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }
             }
             
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            this.showNotification(`Книга "${book.title}" скачивается`, 'success');
         }
-        
-        this.showNotification(`Книга "${book.title}" скачивается`, 'success');
     }
     
     updatePagination(totalPages) {
         const pagination = document.getElementById('pagination');
+        if (!pagination) return;
         
         if (totalPages <= 1) {
             pagination.innerHTML = '';
@@ -476,6 +425,8 @@ class LibraryManager {
     
     updateStats() {
         const statsContainer = document.getElementById('libraryStats');
+        if (!statsContainer) return;
+        
         const stats = bookStorage.getStats();
         
         statsContainer.innerHTML = `
@@ -543,6 +494,8 @@ class LibraryManager {
     
     showNotification(message, type = 'info') {
         const container = document.getElementById('notificationContainer');
+        if (!container) return;
+        
         const notification = document.createElement('div');
         notification.className = `notification ${type}`;
         notification.innerHTML = `
@@ -779,116 +732,6 @@ const libraryStyles = `
         min-height: 400px;
     }
     
-    .book-card {
-        background: var(--background);
-        border-radius: var(--radius);
-        overflow: hidden;
-        transition: var(--transition);
-        border: 1px solid var(--border-color);
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-    }
-    
-    .book-card:hover {
-        transform: translateY(-8px);
-        box-shadow: var(--shadow-lg);
-    }
-    
-    .book-cover {
-        height: 150px;
-        background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-    }
-    
-    .book-cover i {
-        font-size: 3rem;
-        color: white;
-        opacity: 0.9;
-    }
-    
-    .book-format {
-        position: absolute;
-        top: 1rem;
-        right: 1rem;
-        background: rgba(255, 255, 255, 0.2);
-        backdrop-filter: blur(10px);
-        padding: 0.25rem 0.75rem;
-        border-radius: 20px;
-        color: white;
-        font-size: 0.75rem;
-        font-weight: 500;
-    }
-    
-    .book-info {
-        padding: 1.5rem;
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-    }
-    
-    .book-meta {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 0.5rem;
-        font-size: 0.75rem;
-        color: var(--text-secondary);
-    }
-    
-    .book-title {
-        font-size: 1.25rem;
-        font-weight: 600;
-        margin-bottom: 0.5rem;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
-    
-    .book-author {
-        color: var(--text-secondary);
-        margin-bottom: 1rem;
-        font-size: 0.875rem;
-    }
-    
-    .book-description {
-        color: var(--text-secondary);
-        font-size: 0.875rem;
-        margin-bottom: 1rem;
-        flex: 1;
-        display: -webkit-box;
-        -webkit-line-clamp: 3;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
-    
-    .book-stats {
-        display: flex;
-        gap: 1rem;
-        margin-bottom: 1rem;
-        font-size: 0.75rem;
-        color: var(--text-secondary);
-    }
-    
-    .book-stat {
-        display: flex;
-        align-items: center;
-        gap: 0.25rem;
-    }
-    
-    .book-stat i {
-        color: var(--primary-color);
-    }
-    
-    .book-actions {
-        display: flex;
-        gap: 0.5rem;
-        margin-top: auto;
-    }
-    
     .empty-state {
         display: none;
         text-align: center;
@@ -980,191 +823,6 @@ const libraryStyles = `
     .page-dots {
         color: var(--text-secondary);
         padding: 0 0.5rem;
-    }
-    
-    .book-modal {
-        max-width: 800px;
-        width: 95%;
-        max-height: 90vh;
-        overflow-y: auto;
-    }
-    
-    .book-preview {
-        padding: 1rem;
-    }
-    
-    .preview-header {
-        display: flex;
-        gap: 2rem;
-        margin-bottom: 2rem;
-        flex-wrap: wrap;
-    }
-    
-    .preview-cover {
-        width: 150px;
-        height: 200px;
-        background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
-        border-radius: var(--radius);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-        flex-shrink: 0;
-    }
-    
-    .preview-cover i {
-        font-size: 4rem;
-        color: white;
-    }
-    
-    .preview-format {
-        position: absolute;
-        top: 1rem;
-        right: 1rem;
-        background: rgba(255, 255, 255, 0.2);
-        backdrop-filter: blur(10px);
-        padding: 0.25rem 0.75rem;
-        border-radius: 20px;
-        color: white;
-        font-size: 0.75rem;
-        font-weight: 500;
-    }
-    
-    .preview-info {
-        flex: 1;
-        min-width: 300px;
-    }
-    
-    .preview-info h2 {
-        font-size: 2rem;
-        margin-bottom: 0.5rem;
-    }
-    
-    .preview-author {
-        color: var(--text-secondary);
-        font-size: 1.125rem;
-        margin-bottom: 1rem;
-    }
-    
-    .preview-meta {
-        display: flex;
-        gap: 1rem;
-        flex-wrap: wrap;
-        margin-bottom: 1rem;
-    }
-    
-    .preview-meta span {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        background: var(--surface);
-        padding: 0.5rem 1rem;
-        border-radius: 20px;
-        font-size: 0.875rem;
-        color: var(--text-secondary);
-    }
-    
-    .preview-meta i {
-        color: var(--primary-color);
-    }
-    
-    .preview-content {
-        border-top: 1px solid var(--border-color);
-        padding-top: 2rem;
-    }
-    
-    .preview-content h3 {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        margin-bottom: 1rem;
-        color: var(--primary-color);
-    }
-    
-    .preview-content p {
-        color: var(--text-secondary);
-        margin-bottom: 2rem;
-        line-height: 1.6;
-    }
-    
-    .preview-stats {
-        display: flex;
-        gap: 2rem;
-        margin-bottom: 2rem;
-    }
-    
-    .stat-item {
-        text-align: center;
-    }
-    
-    .stat-value {
-        font-size: 2rem;
-        font-weight: 700;
-        color: var(--primary-color);
-    }
-    
-    .stat-label {
-        color: var(--text-secondary);
-        font-size: 0.875rem;
-    }
-    
-    .preview-actions {
-        display: flex;
-        gap: 1rem;
-        margin-bottom: 2rem;
-        flex-wrap: wrap;
-    }
-    
-    .btn-preview {
-        flex: 1;
-        min-width: 200px;
-        padding: 1rem;
-        border: none;
-        border-radius: var(--radius);
-        font-weight: 600;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.75rem;
-        transition: var(--transition);
-    }
-    
-    .btn-preview.read-btn {
-        background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-        color: white;
-    }
-    
-    .btn-preview.download-btn {
-        background: var(--surface);
-        color: var(--text-primary);
-        border: 2px solid var(--border-color);
-    }
-    
-    .btn-preview:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow);
-    }
-    
-    .text-preview {
-        background: var(--surface);
-        border-radius: var(--radius);
-        padding: 1.5rem;
-        margin-top: 2rem;
-    }
-    
-    .text-content {
-        background: var(--background);
-        padding: 1.5rem;
-        border-radius: var(--radius);
-        max-height: 300px;
-        overflow-y: auto;
-        font-family: monospace;
-        white-space: pre-wrap;
-        word-break: break-word;
-        font-size: 0.875rem;
-        color: var(--text-primary);
-        border: 1px solid var(--border-color);
     }
 `;
 
