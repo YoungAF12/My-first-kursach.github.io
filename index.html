@@ -3,107 +3,269 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Digital Library - Домашняя страница</title>
+    <title>Digital Library | Главная</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
+    <!-- Лоадер -->
+    <div class="loader">
+        <div class="loader-spinner">
+            <i class="fas fa-book"></i>
+        </div>
+    </div>
+
     <!-- Навигация -->
-    <nav class="navbar">
-        <div class="container">
+    <nav class="navbar glass">
+        <div class="nav-container">
             <a href="index.html" class="logo">
-                <i class="fas fa-book-open"></i> Digital Library
+                <i class="fas fa-book-open"></i>
+                <span class="logo-text">Digital<span class="logo-highlight">Library</span></span>
             </a>
-            <div class="nav-links">
-                <a href="index.html" class="active"><i class="fas fa-home"></i> Главная</a>
-                <a href="library.html"><i class="fas fa-book"></i> Библиотека</a>
-                <a href="upload.html"><i class="fas fa-cloud-upload-alt"></i> Загрузить</a>
-                <a href="#" id="loginBtn"><i class="fas fa-user"></i> Войти</a>
+            
+            <div class="nav-menu">
+                <a href="index.html" class="nav-link active">
+                    <i class="fas fa-home"></i>
+                    <span>Главная</span>
+                </a>
+                <a href="library.html" class="nav-link">
+                    <i class="fas fa-book"></i>
+                    <span>Библиотека</span>
+                </a>
+                <a href="upload.html" class="nav-link">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <span>Загрузить</span>
+                </a>
+                <a href="#" class="nav-link" id="themeToggle">
+                    <i class="fas fa-moon"></i>
+                    <span>Тема</span>
+                </a>
             </div>
-            <button class="menu-toggle">
-                <i class="fas fa-bars"></i>
-            </button>
+
+            <div class="user-actions">
+                <button class="btn-auth" id="loginBtn">
+                    <i class="fas fa-user"></i>
+                    <span>Войти</span>
+                </button>
+                <button class="menu-toggle" id="mobileMenuToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
         </div>
     </nav>
 
-    <!-- Герой-секция -->
-    <header class="hero">
-        <div class="container">
-            <h1>Добро пожаловать в Digital Library</h1>
-            <p>Бесплатная платформа для обмена книгами в форматах PDF и TXT. Читайте, загружайте, делитесь знаниями.</p>
-            <div class="cta-buttons">
-                <a href="library.html" class="btn btn-primary">
-                    <i class="fas fa-book-reader"></i> Читать книги
+    <!-- Герой секция -->
+    <section class="hero-section">
+        <div class="hero-background">
+            <div class="gradient-circle circle-1"></div>
+            <div class="gradient-circle circle-2"></div>
+            <div class="gradient-circle circle-3"></div>
+        </div>
+        
+        <div class="hero-content">
+            <h1 class="hero-title animate-text">
+                <span class="text-gradient">Открой мир</span>
+                <br>цифровых книг
+            </h1>
+            <p class="hero-subtitle">
+                Бесплатная платформа для чтения и обмена книгами в форматах PDF и TXT. 
+                Исследуйте, загружайте, делитесь знаниями.
+            </p>
+            
+            <div class="hero-actions">
+                <a href="library.html" class="btn-hero btn-primary">
+                    <i class="fas fa-book-reader"></i>
+                    <span>Исследовать библиотеку</span>
                 </a>
-                <a href="upload.html" class="btn btn-secondary">
-                    <i class="fas fa-upload"></i> Поделиться книгой
+                <a href="upload.html" class="btn-hero btn-secondary">
+                    <i class="fas fa-upload"></i>
+                    <span>Поделиться книгой</span>
                 </a>
             </div>
-        </div>
-    </header>
-
-    <!-- Особенности -->
-    <section class="features">
-        <div class="container">
-            <h2>Почему выбирают нас?</h2>
-            <div class="features-grid">
-                <div class="feature-card">
-                    <i class="fas fa-upload"></i>
-                    <h3>Простая загрузка</h3>
-                    <p>Загружайте PDF и TXT файлы в несколько кликов</p>
+            
+            <div class="hero-stats">
+                <div class="stat">
+                    <div class="stat-number" data-count="125">0</div>
+                    <div class="stat-label">Книг в библиотеке</div>
                 </div>
-                <div class="feature-card">
-                    <i class="fas fa-search"></i>
-                    <h3>Удобный поиск</h3>
-                    <p>Находите книги по названию, автору или жанру</p>
+                <div class="stat">
+                    <div class="stat-number" data-count="89">0</div>
+                    <div class="stat-label">Активных читателей</div>
                 </div>
-                <div class="feature-card">
-                    <i class="fas fa-mobile-alt"></i>
-                    <h3>Адаптивный дизайн</h3>
-                    <p>Читайте на любом устройстве</p>
-                </div>
-                <div class="feature-card">
-                    <i class="fas fa-share-alt"></i>
-                    <h3>Бесплатно и открыто</h3>
-                    <p>Все книги бесплатны для чтения и скачивания</p>
+                <div class="stat">
+                    <div class="stat-number" data-count="324">0</div>
+                    <div class="stat-label">Всего загрузок</div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Последние добавленные -->
-    <section class="recent-books">
-        <div class="container">
-            <h2>Последние добавленные книги</h2>
-            <div id="booksGrid" class="books-grid">
-                <!-- Книги загружаются через JS -->
+    <!-- Особенности -->
+    <section class="features-section">
+        <div class="section-header">
+            <h2 class="section-title">Почему выбирают нас?</h2>
+            <p class="section-subtitle">Лучшая платформа для книголюбов</p>
+        </div>
+        
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <h3>Мгновенный доступ</h3>
+                <p>Читайте книги сразу после загрузки без ожидания</p>
             </div>
-            <a href="library.html" class="btn btn-outline">Смотреть все книги</a>
+            
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-palette"></i>
+                </div>
+                <h3>Красивый дизайн</h3>
+                <p>Удобный интерфейс с поддержкой темной темы</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-mobile-alt"></i>
+                </div>
+                <h3>Адаптивность</h3>
+                <p>Идеально работает на всех устройствах</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h3>Безопасность</h3>
+                <p>Ваши данные защищены и хранятся локально</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Последние книги -->
+    <section class="books-section">
+        <div class="section-header">
+            <h2 class="section-title">Недавно добавленные</h2>
+            <a href="library.html" class="view-all">
+                Все книги <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+        
+        <div class="books-grid" id="recentBooks">
+            <!-- Книги загружаются через JS -->
+        </div>
+    </section>
+
+    <!-- Как это работает -->
+    <section class="how-it-works">
+        <div class="section-header">
+            <h2 class="section-title">Как это работает?</h2>
+            <p class="section-subtitle">Три простых шага к знаниям</p>
+        </div>
+        
+        <div class="steps-container">
+            <div class="step">
+                <div class="step-number">01</div>
+                <div class="step-content">
+                    <h3>Загрузите книгу</h3>
+                    <p>Выберите PDF или TXT файл и загрузите его на платформу</p>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">02</div>
+                <div class="step-content">
+                    <h3>Оформите метаданные</h3>
+                    <p>Добавьте название, автора и описание для книги</p>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">03</div>
+                <div class="step-content">
+                    <h3>Поделитесь с миром</h3>
+                    <p>Ваша книга становится доступной для всех читателей</p>
+                </div>
+            </div>
         </div>
     </section>
 
     <!-- Футер -->
     <footer class="footer">
-        <div class="container">
+        <div class="footer-content">
+            <div class="footer-section">
+                <div class="logo">
+                    <i class="fas fa-book-open"></i>
+                    <span class="logo-text">Digital<span class="logo-highlight">Library</span></span>
+                </div>
+                <p>Открытая платформа для любителей книг. Читайте, делитесь, вдохновляйтесь.</p>
+            </div>
+            
+            <div class="footer-section">
+                <h3>Навигация</h3>
+                <a href="index.html">Главная</a>
+                <a href="library.html">Библиотека</a>
+                <a href="upload.html">Загрузить</a>
+            </div>
+            
+            <div class="footer-section">
+                <h3>Поддержка</h3>
+                <a href="#">Помощь</a>
+                <a href="#">FAQ</a>
+                <a href="#">Контакты</a>
+            </div>
+            
+            <div class="footer-section">
+                <h3>Социальные сети</h3>
+                <div class="social-links">
+                    <a href="#"><i class="fab fa-telegram"></i></a>
+                    <a href="#"><i class="fab fa-vk"></i></a>
+                    <a href="#"><i class="fab fa-github"></i></a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer-bottom">
             <p>&copy; 2024 Digital Library. Все права защищены.</p>
-            <p>Это учебный проект для обмена книгами.</p>
         </div>
     </footer>
 
     <!-- Модальное окно входа -->
-    <div id="loginModal" class="modal">
+    <div class="modal-overlay" id="loginModal">
         <div class="modal-content">
-            <span class="close-modal">&times;</span>
-            <h2>Вход в систему</h2>
-            <form id="loginForm">
-                <input type="email" placeholder="Email" required>
-                <input type="password" placeholder="Пароль" required>
-                <button type="submit" class="btn btn-primary">Войти</button>
+            <button class="modal-close" id="closeModal">
+                <i class="fas fa-times"></i>
+            </button>
+            
+            <div class="modal-header">
+                <h2>Вход в систему</h2>
+                <p>Войдите, чтобы получить больше возможностей</p>
+            </div>
+            
+            <form class="modal-form" id="loginForm">
+                <div class="form-group">
+                    <input type="email" placeholder="Ваш email" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" placeholder="Пароль" required>
+                </div>
+                <button type="submit" class="btn-modal">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Войти
+                </button>
             </form>
-            <p class="modal-footer">Нет аккаунта? <a href="#" id="registerLink">Зарегистрироваться</a></p>
+            
+            <div class="modal-footer">
+                <p>Нет аккаунта? <a href="#" class="register-link">Зарегистрироваться</a></p>
+            </div>
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <!-- Уведомления -->
+    <div class="notification-container" id="notificationContainer"></div>
+
+    <script src="storage.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
