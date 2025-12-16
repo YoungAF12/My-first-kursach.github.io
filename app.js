@@ -287,40 +287,108 @@ class DigitalLibraryApp {
     
     // Добавление обработчиков для карточек книг
     addBookCardEventListeners() {
-        // Кнопки чтения
-        document.querySelectorAll('.read-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const bookCard = e.target.closest('.book-card');
-                const bookId = bookCard.dataset.id;
-                const book = bookStorage.getBookById(bookId);
-                if (book && window.bookViewer) {
-                    window.bookViewer.showBook(book);
-                }
-            });
+    // Кнопки чтения
+    document.querySelectorAll('.read-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const bookCard = e.target.closest('.book-card');
+            const bookId = bookCard.dataset.id;
+            const book = bookStorage.getBookById(bookId);
+            if (book) {
+                this.readBook(book);
+            }
         });
-        
-        // Кнопки скачивания
-        document.querySelectorAll('.download-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const bookCard = e.target.closest('.book-card');
-                const bookId = bookCard.dataset.id;
-                this.downloadBook(bookId);
-            });
+    });
+    
+    // Кнопки скачивания
+    document.querySelectorAll('.download-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const bookCard = e.target.closest('.book-card');
+            const bookId = bookCard.dataset.id;
+            this.downloadBook(bookId);
         });
-        
-        // Клик по имени пользователя
-        document.querySelectorAll('.uploader-name').forEach(name => {
-            name.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const bookCard = e.target.closest('.book-card');
-                const bookId = bookCard.dataset.id;
-                const book = bookStorage.getBookById(bookId);
-                if (book && book.uploadedBy && window.userManager) {
-                    window.userManager.showProfile(book.uploadedBy);
-                }
-            });
+    });
+    
+    // Клик по имени пользователя
+    document.querySelectorAll('.uploader-name').forEach(name => {
+        name.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const bookCard = e.target.closest('.book-card');
+            const bookId = bookCard.dataset.id;
+            const book = bookStorage.getBookById(bookId);
+            if (book && book.uploadedBy && window.userManager) {
+                window.userManager.showProfile(book.uploadedBy);
+            }
         });
+    });
+}
+
+// ДОБАВИТЬ этот новый метод в app.js:
+readBook(book) {
+    if (!book) return;
+    
+    // Для TXT файлов показываем в просмотрщике
+    if (book.format === 'txt' && book.fileContent) {
+        if (window.bookViewer) {
+            window.bookViewer.showBook(book);
+        } else {
+            // Fallback: открываем в новом окне
+            this.openTextInNewWindow(book);
+        }
+    } 
+    // Для PDF показываем уведомление
+    else if (book.format === 'pdf') {
+        this.showNotification('Для просмотра PDF используйте скачивание или загрузите TXT версию', 'info');
     }
+    
+    // Увеличиваем счетчик просмотров
+    bookStorage.incrementViews(book.id);
+}
+
+// ДОБАВИТЬ этот метод в app.js:
+openTextInNewWindow(book) {
+    const newWindow = window.open();
+    newWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>${book.title} - Digital Library</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    line-height: 1.6;
+                    max-width: 800px;
+                    margin: 0 auto;
+                    padding: 2rem;
+                    background: #f5f5f5;
+                }
+                .book-content {
+                    background: white;
+                    padding: 2rem;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                    white-space: pre-wrap;
+                    word-wrap: break-word;
+                }
+                .book-header {
+                    margin-bottom: 2rem;
+                    border-bottom: 2px solid #4f46e5;
+                    padding-bottom: 1rem;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="book-content">
+                <div class="book-header">
+                    <h1>${this.escapeHtml(book.title)}</h1>
+                    <h3>${this.escapeHtml(book.author)}</h3>
+                </div>
+                ${this.escapeHtml(book.fileContent)}
+            </div>
+        </body>
+        </html>
+    `);
+    newWindow.document.close();
+}
     
     // Скачивание книги
     downloadBook(bookId) {
