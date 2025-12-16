@@ -1,4 +1,4 @@
-// library.js - Логика библиотеки
+// library.js - Библиотека с Firebase
 
 class LibraryManager {
     constructor() {
@@ -10,20 +10,49 @@ class LibraryManager {
             format: '',
             sort: 'newest'
         };
+        this.initTheme();
         this.init();
+    }
+    
+    initTheme() {
+        const savedTheme = localStorage.getItem('digital-library-theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        
+        const themeToggle = document.getElementById('themeToggle');
+        if (themeToggle) {
+            themeToggle.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.toggleTheme();
+            });
+            this.updateThemeIcon();
+        }
+    }
+    
+    toggleTheme() {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('digital-library-theme', newTheme);
+        this.updateThemeIcon();
+    }
+    
+    updateThemeIcon() {
+        const icon = document.querySelector('#themeToggle i');
+        if (icon) {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            icon.className = currentTheme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+            const text = icon.nextElementSibling;
+            if (text) {
+                text.textContent = currentTheme === 'light' ? 'Тёмная' : 'Светлая';
+            }
+        }
     }
     
     init() {
         this.initFilters();
         this.initSearch();
-        this.displayLibrary();
-        this.updateStats();
-        
-        // Событие при обновлении книг
-        window.addEventListener('booksUpdated', () => {
-            this.displayLibrary();
-            this.updateStats();
-        });
+        this.loadLibrary();
+        this.loadStats();
     }
     
     initFilters() {
@@ -32,56 +61,73 @@ class LibraryManager {
         const sortFilter = document.getElementById('sortFilter');
         const resetBtn = document.getElementById('resetFilters');
         
-        genreFilter.addEventListener('change', () => {
-            this.currentFilters.genre = genreFilter.value;
-            this.currentPage = 1;
-            this.displayLibrary();
-        });
+        if (genreFilter) {
+            genreFilter.addEventListener('change', () => {
+                this.currentFilters.genre = genreFilter.value;
+                this.currentPage = 1;
+                this.loadLibrary();
+            });
+        }
         
-        formatFilter.addEventListener('change', () => {
-            this.currentFilters.format = formatFilter.value;
-            this.currentPage = 1;
-            this.displayLibrary();
-        });
+        if (formatFilter) {
+            formatFilter.addEventListener('change', () => {
+                this.currentFilters.format = formatFilter.value;
+                this.currentPage = 1;
+                this.loadLibrary();
+            });
+        }
         
-        sortFilter.addEventListener('change', () => {
-            this.currentFilters.sort = sortFilter.value;
-            this.currentPage = 1;
-            this.displayLibrary();
-        });
+        if (sortFilter) {
+            sortFilter.addEventListener('change', () => {
+                this.currentFilters.sort = sortFilter.value;
+                this.currentPage = 1;
+                this.loadLibrary();
+            });
+        }
         
-        resetBtn.addEventListener('click', () => {
-            this.resetFilters();
-        });
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                this.resetFilters();
+            });
+        }
     }
     
     initSearch() {
         const searchInput = document.getElementById('searchInput');
         const clearSearch = document.getElementById('clearSearch');
         
-        let searchTimeout;
-        searchInput.addEventListener('input', (e) => {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                this.currentFilters.search = e.target.value.trim();
-                this.currentPage = 1;
-                this.displayLibrary();
-            }, 300);
-        });
+        if (searchInput) {
+            let searchTimeout;
+            searchInput.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    this.currentFilters.search = e.target.value.trim();
+                    this.currentPage = 1;
+                    this.loadLibrary();
+                }, 300);
+            });
+        }
         
-        clearSearch.addEventListener('click', () => {
-            searchInput.value = '';
-            this.currentFilters.search = '';
-            this.currentPage = 1;
-            this.displayLibrary();
-        });
+        if (clearSearch) {
+            clearSearch.addEventListener('click', () => {
+                if (searchInput) searchInput.value = '';
+                this.currentFilters.search = '';
+                this.currentPage = 1;
+                this.loadLibrary();
+            });
+        }
     }
     
     resetFilters() {
-        document.getElementById('genreFilter').value = '';
-        document.getElementById('formatFilter').value = '';
-        document.getElementById('sortFilter').value = 'newest';
-        document.getElementById('searchInput').value = '';
+        const genreFilter = document.getElementById('genreFilter');
+        const formatFilter = document.getElementById('formatFilter');
+        const sortFilter = document.getElementById('sortFilter');
+        const searchInput = document.getElementById('searchInput');
+        
+        if (genreFilter) genreFilter.value = '';
+        if (formatFilter) formatFilter.value = '';
+        if (sortFilter) sortFilter.value = 'newest';
+        if (searchInput) searchInput.value = '';
         
         this.currentFilters = {
             search: '',
@@ -91,86 +137,121 @@ class LibraryManager {
         };
         
         this.currentPage = 1;
-        this.displayLibrary();
+        this.loadLibrary();
     }
     
-    getFilteredBooks() {
-        let books = bookStorage.getAllBooks();
-        
-        // Применяем фильтры
-        if (this.currentFilters.search) {
-            books = bookStorage.searchBooks(this.currentFilters.search);
-        }
-        
-        if (this.currentFilters.genre) {
-            books = books.filter(book => book.genre === this.currentFilters.genre);
-        }
-        
-        if (this.currentFilters.format) {
-            books = books.filter(book => book.format === this.currentFilters.format);
-        }
-        
-        // Применяем сортировку
-        books = this.sortBooks(books);
-        
-        return books;
-    }
-    
-    sortBooks(books) {
-        switch (this.currentFilters.sort) {
-            case 'newest':
-                return books.sort((a, b) => new Date(b.dateAdded) - new Date(a.dateAdded));
-            case 'oldest':
-                return books.sort((a, b) => new Date(a.dateAdded) - new Date(b.dateAdded));
-            case 'title':
-                return books.sort((a, b) => a.title.localeCompare(b.title));
-            case 'title_desc':
-                return books.sort((a, b) => b.title.localeCompare(a.title));
-            case 'views':
-                return books.sort((a, b) => (b.views || 0) - (a.views || 0));
-            default:
-                return books;
-        }
-    }
-    
-    async displayLibrary() {
+    async loadLibrary() {
         const booksGrid = document.getElementById('booksGrid');
         const emptyState = document.getElementById('emptyState');
         const loadingState = document.getElementById('loadingState');
+        
+        if (!booksGrid || !emptyState || !loadingState) return;
         
         // Показываем состояние загрузки
         booksGrid.innerHTML = '';
         loadingState.style.display = 'block';
         emptyState.style.display = 'none';
         
-        // Имитация задержки для лучшего UX
-        await new Promise(resolve => setTimeout(resolve, 500));
+        try {
+            // Получаем все книги
+            let allBooks = await firestoreManager.getAllBooks();
+            
+            // Применяем фильтры на клиенте (в простой версии)
+            // В продакшене фильтрация должна быть на сервере
+            let filteredBooks = this.applyFilters(allBooks);
+            
+            // Сортируем
+            filteredBooks = this.sortBooks(filteredBooks);
+            
+            const totalBooks = filteredBooks.length;
+            const totalPages = Math.ceil(totalBooks / this.booksPerPage);
+            
+            // Пагинация
+            const startIndex = (this.currentPage - 1) * this.booksPerPage;
+            const endIndex = startIndex + this.booksPerPage;
+            const pageBooks = filteredBooks.slice(startIndex, endIndex);
+            
+            // Отображаем книги
+            booksGrid.innerHTML = this.generateBookCards(pageBooks);
+            
+            // Показываем/скрываем состояния
+            loadingState.style.display = 'none';
+            
+            if (pageBooks.length === 0) {
+                emptyState.style.display = 'block';
+            } else {
+                emptyState.style.display = 'none';
+            }
+            
+            // Обновляем пагинацию
+            this.updatePagination(totalPages);
+            
+        } catch (error) {
+            console.error('Ошибка загрузки библиотеки:', error);
+            loadingState.style.display = 'none';
+            booksGrid.innerHTML = `
+                <div class="error-state">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h3>Ошибка загрузки</h3>
+                    <p>Не удалось загрузить книги. Попробуйте обновить страницу.</p>
+                </div>
+            `;
+        }
+    }
+    
+    applyFilters(books) {
+        let filtered = [...books];
         
-        // Получаем отфильтрованные книги
-        const allBooks = this.getFilteredBooks();
-        const totalBooks = allBooks.length;
-        const totalPages = Math.ceil(totalBooks / this.booksPerPage);
-        
-        // Рассчитываем книги для текущей страницы
-        const startIndex = (this.currentPage - 1) * this.booksPerPage;
-        const endIndex = startIndex + this.booksPerPage;
-        const pageBooks = allBooks.slice(startIndex, endIndex);
-        
-        // Генерируем карточки книг
-        booksGrid.innerHTML = this.generateBookCards(pageBooks);
-        
-        // Показываем/скрываем состояния
-        loadingState.style.display = 'none';
-        
-        if (pageBooks.length === 0) {
-            emptyState.style.display = 'block';
-        } else {
-            emptyState.style.display = 'none';
-            this.addBookEventListeners();
+        // Фильтр по жанру
+        if (this.currentFilters.genre) {
+            filtered = filtered.filter(book => book.genre === this.currentFilters.genre);
         }
         
-        // Обновляем пагинацию
-        this.updatePagination(totalPages);
+        // Фильтр по формату
+        if (this.currentFilters.format) {
+            filtered = filtered.filter(book => book.format === this.currentFilters.format);
+        }
+        
+        // Поиск (простой поиск на клиенте)
+        if (this.currentFilters.search) {
+            const searchTerm = this.currentFilters.search.toLowerCase();
+            filtered = filtered.filter(book => 
+                book.title.toLowerCase().includes(searchTerm) ||
+                book.author.toLowerCase().includes(searchTerm) ||
+                book.description?.toLowerCase().includes(searchTerm) ||
+                book.genre.toLowerCase().includes(searchTerm) ||
+                book.uploadedByName?.toLowerCase().includes(searchTerm)
+            );
+        }
+        
+        return filtered;
+    }
+    
+    sortBooks(books) {
+        switch (this.currentFilters.sort) {
+            case 'newest':
+                return books.sort((a, b) => {
+                    const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
+                    const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
+                    return dateB - dateA;
+                });
+            case 'oldest':
+                return books.sort((a, b) => {
+                    const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
+                    const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
+                    return dateA - dateB;
+                });
+            case 'title':
+                return books.sort((a, b) => a.title.localeCompare(b.title));
+            case 'title_desc':
+                return books.sort((a, b) => b.title.localeCompare(a.title));
+            case 'views':
+                return books.sort((a, b) => (b.views || 0) - (a.views || 0));
+            case 'downloads':
+                return books.sort((a, b) => (b.downloads || 0) - (a.downloads || 0));
+            default:
+                return books;
+        }
     }
     
     generateBookCards(books) {
@@ -183,10 +264,22 @@ class LibraryManager {
                 <div class="book-info">
                     <div class="book-meta">
                         <span class="book-genre">${book.genre}</span>
-                        <span class="book-date">${this.formatDate(book.dateAdded)}</span>
+                        <span class="book-date">${this.formatDate(book.createdAt)}</span>
                     </div>
                     <h3 class="book-title">${book.title}</h3>
                     <p class="book-author">${book.author}</p>
+                    
+                    ${book.uploadedByName ? `
+                        <div class="book-uploader">
+                            <i class="fas fa-user"></i>
+                            <span class="uploader-name" 
+                                  onclick="authManager.showUserProfile('${book.uploadedBy}')"
+                                  style="cursor: pointer;">
+                                ${book.uploadedByName}
+                            </span>
+                        </div>
+                    ` : ''}
+                    
                     <p class="book-description">${book.description || 'Без описания'}</p>
                     
                     <div class="book-stats">
@@ -198,18 +291,20 @@ class LibraryManager {
                             <i class="fas fa-download"></i>
                             ${book.downloads || 0}
                         </span>
-                        <span class="book-stat">
-                            <i class="fas fa-file"></i>
-                            ${this.formatFileSize(book.size || 0)}
-                        </span>
+                        ${book.fileSize ? `
+                            <span class="book-stat">
+                                <i class="fas fa-file"></i>
+                                ${this.formatFileSize(book.fileSize)}
+                            </span>
+                        ` : ''}
                     </div>
                     
                     <div class="book-actions">
-                        <button class="action-btn preview-btn">
+                        <button class="action-btn preview-btn" onclick="libraryManager.readBook('${book.id}')">
                             <i class="fas fa-eye"></i>
-                            Просмотр
+                            Читать
                         </button>
-                        <button class="action-btn download-btn">
+                        <button class="action-btn download-btn" onclick="libraryManager.downloadBook('${book.id}')">
                             <i class="fas fa-download"></i>
                             Скачать
                         </button>
@@ -219,264 +314,140 @@ class LibraryManager {
         `).join('');
     }
     
-    addBookEventListeners() {
-        // Кнопки просмотра
-        document.querySelectorAll('.preview-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const bookCard = e.target.closest('.book-card');
-                const bookId = bookCard.dataset.id;
-                this.showBookPreview(bookId);
-            });
-        });
-        
-        // Кнопки скачивания
-        document.querySelectorAll('.download-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const bookCard = e.target.closest('.book-card');
-                const bookId = bookCard.dataset.id;
-                this.downloadBook(bookId);
-            });
-        });
+    async readBook(bookId) {
+        try {
+            const book = await firestoreManager.getBookById(bookId);
+            if (!book) {
+                this.showNotification('Книга не найдена', 'error');
+                return;
+            }
+            
+            // Увеличиваем счетчик просмотров
+            await firestoreManager.incrementViews(bookId);
+            
+            // Для TXT файлов показываем содержимое
+            if (book.format === 'txt' && book.fileName) {
+                const result = await storageManager.viewTextFile(book.fileName);
+                if (result.success) {
+                    this.showTextInModal(book, result.content);
+                } else {
+                    this.showNotification('Не удалось загрузить книгу', 'error');
+                }
+            } 
+            // Для PDF открываем в новом окне
+            else if (book.format === 'pdf' && book.downloadURL) {
+                window.open(book.downloadURL, '_blank');
+            } else {
+                this.showNotification('Формат книги не поддерживает просмотр', 'info');
+            }
+            
+        } catch (error) {
+            console.error('Ошибка чтения книги:', error);
+            this.showNotification('Ошибка открытия книги', 'error');
+        }
     }
     
-    showBookPreview(bookId) {
-        const book = bookStorage.getBookById(bookId);
-        if (!book) return;
-        
-        // Увеличиваем счетчик просмотров
-        bookStorage.incrementViews(bookId);
-        
-        const modal = document.getElementById('bookModal');
-        const modalContent = document.getElementById('bookModalContent');
-        
-        modalContent.innerHTML = `
-            <div class="book-preview">
-                <div class="preview-header">
-                    <div class="preview-cover">
-                        <i class="fas fa-${book.format === 'pdf' ? 'file-pdf' : 'file-alt'}"></i>
-                        <span class="preview-format">${book.format.toUpperCase()}</span>
-                    </div>
-                    <div class="preview-info">
+    showTextInModal(book, content) {
+        const modalHTML = `
+            <div class="modal-overlay" id="textModal">
+                <div class="modal-content text-modal">
+                    <button class="modal-close" id="closeTextModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    
+                    <div class="text-modal-header">
                         <h2>${book.title}</h2>
-                        <p class="preview-author">${book.author}</p>
-                        <div class="preview-meta">
-                            <span><i class="fas fa-tag"></i> ${book.genre}</span>
-                            <span><i class="fas fa-calendar"></i> ${this.formatDate(book.dateAdded)}</span>
-                            <span><i class="fas fa-file"></i> ${this.formatFileSize(book.size || 0)}</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="preview-content">
-                    <h3><i class="fas fa-align-left"></i> Описание</h3>
-                    <p>${book.description || 'Описание отсутствует'}</p>
-                    
-                    <h3><i class="fas fa-chart-bar"></i> Статистика</h3>
-                    <div class="preview-stats">
-                        <div class="stat-item">
-                            <div class="stat-value">${book.views || 0}</div>
-                            <div class="stat-label">Просмотров</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value">${book.downloads || 0}</div>
-                            <div class="stat-label">Скачиваний</div>
-                        </div>
+                        <p class="text-modal-author">${book.author}</p>
                     </div>
                     
-                    <div class="preview-actions">
-                        <button class="btn-preview read-btn" data-id="${book.id}">
-                            <i class="fas fa-book-reader"></i>
-                            Читать книгу
-                        </button>
-                        <button class="btn-preview download-btn" data-id="${book.id}">
+                    <div class="text-modal-content">
+                        <pre>${this.escapeHtml(content)}</pre>
+                    </div>
+                    
+                    <div class="text-modal-footer">
+                        <button class="btn-primary" onclick="libraryManager.downloadBook('${book.id}')">
                             <i class="fas fa-download"></i>
-                            Скачать (${book.format.toUpperCase()})
+                            Скачать книгу
                         </button>
                     </div>
-                    
-                    ${book.format === 'txt' && book.fileContent ? `
-                        <div class="text-preview">
-                            <h3><i class="fas fa-file-alt"></i> Предпросмотр</h3>
-                            <div class="text-content">
-                                ${this.escapeHtml(book.fileContent.substring(0, 1000))}
-                                ${book.fileContent.length > 1000 ? '...' : ''}
-                            </div>
-                        </div>
-                    ` : ''}
                 </div>
             </div>
         `;
         
-        modal.classList.add('active');
+        const oldModal = document.getElementById('textModal');
+        if (oldModal) oldModal.remove();
         
-        // Обработчики для кнопок в модальном окне
-        modalContent.querySelector('.read-btn').addEventListener('click', (e) => {
-            this.readBook(book.id);
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        document.getElementById('textModal').classList.add('active');
+        
+        document.getElementById('closeTextModal').addEventListener('click', () => {
+            document.getElementById('textModal').classList.remove('active');
         });
         
-        modalContent.querySelector('.download-btn').addEventListener('click', (e) => {
-            this.downloadBook(book.id);
-        });
-        
-        // Закрытие модального окна
-        document.getElementById('closeBookModal').addEventListener('click', () => {
-            modal.classList.remove('active');
-        });
-        
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.classList.remove('active');
+        document.getElementById('textModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) {
+                document.getElementById('textModal').classList.remove('active');
             }
         });
     }
     
-    readBook(bookId) {
-        const book = bookStorage.getBookById(bookId);
-        if (!book) return;
-        
-        // Для TXT файлов открываем в новом окне
-        if (book.format === 'txt' && book.fileContent) {
-            const newWindow = window.open();
-            newWindow.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>${book.title} - Digital Library</title>
-                    <style>
-                        body {
-                            font-family: Arial, sans-serif;
-                            line-height: 1.6;
-                            max-width: 800px;
-                            margin: 0 auto;
-                            padding: 2rem;
-                            background: #f5f5f5;
-                        }
-                        .book-content {
-                            background: white;
-                            padding: 2rem;
-                            border-radius: 8px;
-                            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-                            white-space: pre-wrap;
-                            word-wrap: break-word;
-                        }
-                        .book-header {
-                            margin-bottom: 2rem;
-                            border-bottom: 2px solid #4f46e5;
-                            padding-bottom: 1rem;
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div class="book-content">
-                        <div class="book-header">
-                            <h1>${this.escapeHtml(book.title)}</h1>
-                            <h3>${this.escapeHtml(book.author)}</h3>
-                        </div>
-                        ${this.escapeHtml(book.fileContent)}
-                    </div>
-                </body>
-                </html>
-            `);
-            newWindow.document.close();
-        } else {
-            // Для PDF файлов показываем сообщение
-            this.showNotification('Для просмотра PDF файлов используйте скачивание', 'info');
-        }
-        
-        this.showNotification(`Открываем "${book.title}"`, 'success');
-    }
-    
-    downloadBook(bookId) {
-        const book = bookStorage.getBookById(bookId);
-        if (!book) return;
-        
-        bookStorage.incrementDownloads(bookId);
-        
-        if (book.fileContent) {
-            let blob, fileName;
+    async downloadBook(bookId) {
+        try {
+            const book = await firestoreManager.getBookById(bookId);
+            if (!book) {
+                this.showNotification('Книга не найдена', 'error');
+                return;
+            }
             
-            if (book.format === 'txt') {
-                blob = new Blob([book.fileContent], { type: 'text/plain;charset=utf-8' });
-                fileName = `${book.title}.txt`;
+            // Увеличиваем счетчик скачиваний
+            await firestoreManager.incrementDownloads(bookId);
+            
+            // Скачиваем файл
+            if (book.fileName) {
+                await storageManager.downloadFile(book.fileName, book.title, book.format);
+                this.showNotification(`Книга "${book.title}" скачивается`, 'success');
+            } else if (book.downloadURL) {
+                const a = document.createElement('a');
+                a.href = book.downloadURL;
+                a.download = `${book.title}.${book.format}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                this.showNotification(`Книга "${book.title}" скачивается`, 'success');
             } else {
-                // Для base64 PDF
-                const byteCharacters = atob(book.fileContent.split(',')[1]);
-                const byteNumbers = new Array(byteCharacters.length);
-                for (let i = 0; i < byteCharacters.length; i++) {
-                    byteNumbers[i] = byteCharacters.charCodeAt(i);
-                }
-                const byteArray = new Uint8Array(byteNumbers);
-                blob = new Blob([byteArray], { type: 'application/pdf' });
-                fileName = `${book.title}.pdf`;
+                this.showNotification('Файл книги не найден', 'error');
             }
             
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Ошибка скачивания:', error);
+            this.showNotification('Ошибка скачивания книги', 'error');
         }
-        
-        this.showNotification(`Книга "${book.title}" скачивается`, 'success');
     }
     
-    updatePagination(totalPages) {
-        const pagination = document.getElementById('pagination');
-        
-        if (totalPages <= 1) {
-            pagination.innerHTML = '';
-            return;
+    async loadStats() {
+        try {
+            const books = await firestoreManager.getAllBooks();
+            const stats = this.calculateStats(books);
+            this.displayStats(stats);
+        } catch (error) {
+            console.error('Ошибка загрузки статистики:', error);
         }
-        
-        let paginationHTML = '';
-        
-        // Кнопка "Назад"
-        if (this.currentPage > 1) {
-            paginationHTML += `
-                <button class="page-btn prev-btn" onclick="libraryManager.goToPage(${this.currentPage - 1})">
-                    <i class="fas fa-chevron-left"></i>
-                </button>
-            `;
-        }
-        
-        // Номера страниц
-        for (let i = 1; i <= totalPages; i++) {
-            if (i === 1 || i === totalPages || (i >= this.currentPage - 2 && i <= this.currentPage + 2)) {
-                paginationHTML += `
-                    <button class="page-btn ${i === this.currentPage ? 'active' : ''}" 
-                            onclick="libraryManager.goToPage(${i})">
-                        ${i}
-                    </button>
-                `;
-            } else if (i === this.currentPage - 3 || i === this.currentPage + 3) {
-                paginationHTML += `<span class="page-dots">...</span>`;
-            }
-        }
-        
-        // Кнопка "Вперед"
-        if (this.currentPage < totalPages) {
-            paginationHTML += `
-                <button class="page-btn next-btn" onclick="libraryManager.goToPage(${this.currentPage + 1})">
-                    <i class="fas fa-chevron-right"></i>
-                </button>
-            `;
-        }
-        
-        pagination.innerHTML = paginationHTML;
     }
     
-    goToPage(page) {
-        this.currentPage = page;
-        this.displayLibrary();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+    calculateStats(books) {
+        return {
+            totalBooks: books.length,
+            totalViews: books.reduce((sum, book) => sum + (book.views || 0), 0),
+            totalDownloads: books.reduce((sum, book) => sum + (book.downloads || 0), 0),
+            pdfCount: books.filter(book => book.format === 'pdf').length,
+            txtCount: books.filter(book => book.format === 'txt').length
+        };
     }
     
-    updateStats() {
+    displayStats(stats) {
         const statsContainer = document.getElementById('libraryStats');
-        const stats = bookStorage.getStats();
+        if (!statsContainer) return;
         
         statsContainer.innerHTML = `
             <div class="stat-card">
@@ -508,18 +479,68 @@ class LibraryManager {
             </div>
             <div class="stat-card">
                 <div class="stat-icon">
-                    <i class="fas fa-chart-pie"></i>
+                    <i class="fas fa-file-pdf"></i>
                 </div>
                 <div class="stat-info">
-                    <div class="stat-number">${stats.formats.pdf || 0}</div>
+                    <div class="stat-number">${stats.pdfCount}</div>
                     <div class="stat-label">PDF файлов</div>
                 </div>
             </div>
         `;
     }
     
-    formatDate(dateString) {
-        const date = new Date(dateString);
+    updatePagination(totalPages) {
+        const pagination = document.getElementById('pagination');
+        if (!pagination) return;
+        
+        if (totalPages <= 1) {
+            pagination.innerHTML = '';
+            return;
+        }
+        
+        let paginationHTML = '';
+        
+        if (this.currentPage > 1) {
+            paginationHTML += `
+                <button class="page-btn prev-btn" onclick="libraryManager.goToPage(${this.currentPage - 1})">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+            `;
+        }
+        
+        for (let i = 1; i <= totalPages; i++) {
+            if (i === 1 || i === totalPages || (i >= this.currentPage - 2 && i <= this.currentPage + 2)) {
+                paginationHTML += `
+                    <button class="page-btn ${i === this.currentPage ? 'active' : ''}" 
+                            onclick="libraryManager.goToPage(${i})">
+                        ${i}
+                    </button>
+                `;
+            } else if (i === this.currentPage - 3 || i === this.currentPage + 3) {
+                paginationHTML += `<span class="page-dots">...</span>`;
+            }
+        }
+        
+        if (this.currentPage < totalPages) {
+            paginationHTML += `
+                <button class="page-btn next-btn" onclick="libraryManager.goToPage(${this.currentPage + 1})">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            `;
+        }
+        
+        pagination.innerHTML = paginationHTML;
+    }
+    
+    goToPage(page) {
+        this.currentPage = page;
+        this.loadLibrary();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    
+    formatDate(timestamp) {
+        if (!timestamp) return 'Дата неизвестна';
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
         return date.toLocaleDateString('ru-RU', {
             day: '2-digit',
             month: 'short',
@@ -528,6 +549,7 @@ class LibraryManager {
     }
     
     formatFileSize(bytes) {
+        if (!bytes) return 'Неизвестно';
         if (bytes === 0) return '0 Bytes';
         const k = 1024;
         const sizes = ['Bytes', 'KB', 'MB', 'GB'];
@@ -542,7 +564,14 @@ class LibraryManager {
     }
     
     showNotification(message, type = 'info') {
-        const container = document.getElementById('notificationContainer');
+        let container = document.getElementById('notificationContainer');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'notificationContainer';
+            container.className = 'notification-container';
+            document.body.appendChild(container);
+        }
+        
         const notification = document.createElement('div');
         notification.className = `notification ${type}`;
         notification.innerHTML = `
@@ -560,620 +589,28 @@ class LibraryManager {
         
         const closeBtn = notification.querySelector('.notification-close');
         closeBtn.addEventListener('click', () => {
-            this.removeNotification(notification);
+            notification.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 300);
         });
         
         setTimeout(() => {
-            if (document.body.contains(notification)) {
-                this.removeNotification(notification);
+            if (notification.parentNode) {
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
             }
         }, 5000);
     }
-    
-    removeNotification(notification) {
-        notification.style.transform = 'translateX(100%)';
-        setTimeout(() => {
-            if (document.body.contains(notification)) {
-                notification.remove();
-            }
-        }, 300);
-    }
 }
 
-// Добавляем стили для библиотеки
-const libraryStyles = `
-    .library-page {
-        min-height: 100vh;
-        padding: 8rem 1rem 4rem;
-        background: var(--surface);
-    }
-    
-    .library-container {
-        max-width: 1400px;
-        margin: 0 auto;
-    }
-    
-    .library-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 3rem;
-        flex-wrap: wrap;
-        gap: 2rem;
-    }
-    
-    .library-header h1 {
-        font-family: 'Playfair Display', serif;
-        font-size: 3rem;
-        margin-bottom: 0.5rem;
-        background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
-    }
-    
-    .library-header p {
-        color: var(--text-secondary);
-    }
-    
-    .search-container {
-        flex: 1;
-        max-width: 500px;
-    }
-    
-    .search-box {
-        position: relative;
-        display: flex;
-        align-items: center;
-    }
-    
-    .search-box i {
-        position: absolute;
-        left: 1rem;
-        color: var(--text-secondary);
-    }
-    
-    .search-box input {
-        width: 100%;
-        padding: 1rem 1rem 1rem 3rem;
-        background: var(--background);
-        border: 2px solid var(--border-color);
-        border-radius: var(--radius);
-        color: var(--text-primary);
-        font-size: 1rem;
-        transition: var(--transition);
-    }
-    
-    .search-box input:focus {
-        outline: none;
-        border-color: var(--primary-color);
-    }
-    
-    .clear-search {
-        position: absolute;
-        right: 1rem;
-        background: none;
-        border: none;
-        color: var(--text-secondary);
-        cursor: pointer;
-        transition: var(--transition);
-    }
-    
-    .clear-search:hover {
-        color: var(--primary-color);
-    }
-    
-    .filters-section {
-        display: flex;
-        gap: 1.5rem;
-        align-items: center;
-        margin-bottom: 2rem;
-        flex-wrap: wrap;
-        padding: 1.5rem;
-        background: var(--background);
-        border-radius: var(--radius);
-        box-shadow: var(--shadow);
-    }
-    
-    .filter-group {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-    }
-    
-    .filter-group label {
-        font-weight: 500;
-        color: var(--text-primary);
-        white-space: nowrap;
-    }
-    
-    .filter-group select {
-        padding: 0.75rem;
-        background: var(--surface);
-        border: 2px solid var(--border-color);
-        border-radius: var(--radius);
-        color: var(--text-primary);
-        font-size: 0.875rem;
-        min-width: 150px;
-        transition: var(--transition);
-    }
-    
-    .filter-group select:focus {
-        outline: none;
-        border-color: var(--primary-color);
-    }
-    
-    .btn-reset {
-        padding: 0.75rem 1.5rem;
-        background: var(--surface);
-        border: 2px solid var(--border-color);
-        border-radius: var(--radius);
-        color: var(--text-primary);
-        font-weight: 500;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        transition: var(--transition);
-    }
-    
-    .btn-reset:hover {
-        border-color: var(--primary-color);
-        color: var(--primary-color);
-    }
-    
-    .stats-container {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
-        margin-bottom: 3rem;
-    }
-    
-    .stat-card {
-        background: var(--background);
-        padding: 1.5rem;
-        border-radius: var(--radius);
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        box-shadow: var(--shadow);
-        transition: var(--transition);
-    }
-    
-    .stat-card:hover {
-        transform: translateY(-4px);
-    }
-    
-    .stat-icon {
-        width: 60px;
-        height: 60px;
-        background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    .stat-icon i {
-        font-size: 1.5rem;
-        color: white;
-    }
-    
-    .stat-info {
-        flex: 1;
-    }
-    
-    .stat-number {
-        font-size: 2rem;
-        font-weight: 700;
-        color: var(--primary-color);
-    }
-    
-    .stat-label {
-        color: var(--text-secondary);
-        font-size: 0.875rem;
-    }
-    
-    .books-container {
-        position: relative;
-        min-height: 400px;
-    }
-    
-    .book-card {
-        background: var(--background);
-        border-radius: var(--radius);
-        overflow: hidden;
-        transition: var(--transition);
-        border: 1px solid var(--border-color);
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-    }
-    
-    .book-card:hover {
-        transform: translateY(-8px);
-        box-shadow: var(--shadow-lg);
-    }
-    
-    .book-cover {
-        height: 150px;
-        background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-    }
-    
-    .book-cover i {
-        font-size: 3rem;
-        color: white;
-        opacity: 0.9;
-    }
-    
-    .book-format {
-        position: absolute;
-        top: 1rem;
-        right: 1rem;
-        background: rgba(255, 255, 255, 0.2);
-        backdrop-filter: blur(10px);
-        padding: 0.25rem 0.75rem;
-        border-radius: 20px;
-        color: white;
-        font-size: 0.75rem;
-        font-weight: 500;
-    }
-    
-    .book-info {
-        padding: 1.5rem;
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-    }
-    
-    .book-meta {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 0.5rem;
-        font-size: 0.75rem;
-        color: var(--text-secondary);
-    }
-    
-    .book-title {
-        font-size: 1.25rem;
-        font-weight: 600;
-        margin-bottom: 0.5rem;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
-    
-    .book-author {
-        color: var(--text-secondary);
-        margin-bottom: 1rem;
-        font-size: 0.875rem;
-    }
-    
-    .book-description {
-        color: var(--text-secondary);
-        font-size: 0.875rem;
-        margin-bottom: 1rem;
-        flex: 1;
-        display: -webkit-box;
-        -webkit-line-clamp: 3;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
-    
-    .book-stats {
-        display: flex;
-        gap: 1rem;
-        margin-bottom: 1rem;
-        font-size: 0.75rem;
-        color: var(--text-secondary);
-    }
-    
-    .book-stat {
-        display: flex;
-        align-items: center;
-        gap: 0.25rem;
-    }
-    
-    .book-stat i {
-        color: var(--primary-color);
-    }
-    
-    .book-actions {
-        display: flex;
-        gap: 0.5rem;
-        margin-top: auto;
-    }
-    
-    .empty-state {
-        display: none;
-        text-align: center;
-        padding: 4rem 2rem;
-    }
-    
-    .empty-state i {
-        font-size: 4rem;
-        color: var(--primary-color);
-        margin-bottom: 1rem;
-        opacity: 0.5;
-    }
-    
-    .empty-state h3 {
-        font-size: 1.5rem;
-        margin-bottom: 0.5rem;
-        color: var(--text-primary);
-    }
-    
-    .empty-state p {
-        color: var(--text-secondary);
-    }
-    
-    .empty-state a {
-        color: var(--primary-color);
-        text-decoration: none;
-        font-weight: 500;
-    }
-    
-    .loading-state {
-        display: none;
-        text-align: center;
-        padding: 4rem 2rem;
-    }
-    
-    .spinner {
-        width: 50px;
-        height: 50px;
-        border: 3px solid var(--border-color);
-        border-top-color: var(--primary-color);
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin: 0 auto 1rem;
-    }
-    
-    @keyframes spin {
-        to { transform: rotate(360deg); }
-    }
-    
-    .loading-state p {
-        color: var(--text-secondary);
-    }
-    
-    .pagination {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 0.5rem;
-        margin-top: 3rem;
-        flex-wrap: wrap;
-    }
-    
-    .page-btn {
-        width: 40px;
-        height: 40px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: var(--background);
-        border: 2px solid var(--border-color);
-        border-radius: var(--radius);
-        color: var(--text-primary);
-        font-weight: 500;
-        cursor: pointer;
-        transition: var(--transition);
-    }
-    
-    .page-btn:hover {
-        border-color: var(--primary-color);
-        color: var(--primary-color);
-    }
-    
-    .page-btn.active {
-        background: var(--primary-color);
-        border-color: var(--primary-color);
-        color: white;
-    }
-    
-    .page-dots {
-        color: var(--text-secondary);
-        padding: 0 0.5rem;
-    }
-    
-    .book-modal {
-        max-width: 800px;
-        width: 95%;
-        max-height: 90vh;
-        overflow-y: auto;
-    }
-    
-    .book-preview {
-        padding: 1rem;
-    }
-    
-    .preview-header {
-        display: flex;
-        gap: 2rem;
-        margin-bottom: 2rem;
-        flex-wrap: wrap;
-    }
-    
-    .preview-cover {
-        width: 150px;
-        height: 200px;
-        background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
-        border-radius: var(--radius);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-        flex-shrink: 0;
-    }
-    
-    .preview-cover i {
-        font-size: 4rem;
-        color: white;
-    }
-    
-    .preview-format {
-        position: absolute;
-        top: 1rem;
-        right: 1rem;
-        background: rgba(255, 255, 255, 0.2);
-        backdrop-filter: blur(10px);
-        padding: 0.25rem 0.75rem;
-        border-radius: 20px;
-        color: white;
-        font-size: 0.75rem;
-        font-weight: 500;
-    }
-    
-    .preview-info {
-        flex: 1;
-        min-width: 300px;
-    }
-    
-    .preview-info h2 {
-        font-size: 2rem;
-        margin-bottom: 0.5rem;
-    }
-    
-    .preview-author {
-        color: var(--text-secondary);
-        font-size: 1.125rem;
-        margin-bottom: 1rem;
-    }
-    
-    .preview-meta {
-        display: flex;
-        gap: 1rem;
-        flex-wrap: wrap;
-        margin-bottom: 1rem;
-    }
-    
-    .preview-meta span {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        background: var(--surface);
-        padding: 0.5rem 1rem;
-        border-radius: 20px;
-        font-size: 0.875rem;
-        color: var(--text-secondary);
-    }
-    
-    .preview-meta i {
-        color: var(--primary-color);
-    }
-    
-    .preview-content {
-        border-top: 1px solid var(--border-color);
-        padding-top: 2rem;
-    }
-    
-    .preview-content h3 {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        margin-bottom: 1rem;
-        color: var(--primary-color);
-    }
-    
-    .preview-content p {
-        color: var(--text-secondary);
-        margin-bottom: 2rem;
-        line-height: 1.6;
-    }
-    
-    .preview-stats {
-        display: flex;
-        gap: 2rem;
-        margin-bottom: 2rem;
-    }
-    
-    .stat-item {
-        text-align: center;
-    }
-    
-    .stat-value {
-        font-size: 2rem;
-        font-weight: 700;
-        color: var(--primary-color);
-    }
-    
-    .stat-label {
-        color: var(--text-secondary);
-        font-size: 0.875rem;
-    }
-    
-    .preview-actions {
-        display: flex;
-        gap: 1rem;
-        margin-bottom: 2rem;
-        flex-wrap: wrap;
-    }
-    
-    .btn-preview {
-        flex: 1;
-        min-width: 200px;
-        padding: 1rem;
-        border: none;
-        border-radius: var(--radius);
-        font-weight: 600;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.75rem;
-        transition: var(--transition);
-    }
-    
-    .btn-preview.read-btn {
-        background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-        color: white;
-    }
-    
-    .btn-preview.download-btn {
-        background: var(--surface);
-        color: var(--text-primary);
-        border: 2px solid var(--border-color);
-    }
-    
-    .btn-preview:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow);
-    }
-    
-    .text-preview {
-        background: var(--surface);
-        border-radius: var(--radius);
-        padding: 1.5rem;
-        margin-top: 2rem;
-    }
-    
-    .text-content {
-        background: var(--background);
-        padding: 1.5rem;
-        border-radius: var(--radius);
-        max-height: 300px;
-        overflow-y: auto;
-        font-family: monospace;
-        white-space: pre-wrap;
-        word-break: break-word;
-        font-size: 0.875rem;
-        color: var(--text-primary);
-        border: 1px solid var(--border-color);
-    }
-`;
-
-// Добавляем стили для библиотеки
-const libraryStyleSheet = document.createElement('style');
-libraryStyleSheet.textContent = libraryStyles;
-document.head.appendChild(libraryStyleSheet);
-
-// Инициализация библиотеки при загрузке страницы
+// Инициализация библиотеки
 document.addEventListener('DOMContentLoaded', () => {
     window.libraryManager = new LibraryManager();
 });
