@@ -3,112 +3,160 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IT Books Reader</title>
-    <link rel="stylesheet" href="style.css">
-    <!-- Firebase -->
+    <title>IT-Библиотека | Чтение электронных книг</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <!-- PDF.js (ИСПРАВЛЕННАЯ ссылка с unpkg) -->
-    <script src="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    <!-- PDF.js для отображения PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>📚 IT Books Reader</h1>
-            <div class="controls">
-                <input type="file" id="file-input" accept=".txt,.pdf" style="display: none;">
-                <button id="load-btn">📁 Загрузить книгу</button>
-                <button id="theme-btn">🌙 Тёмная тема</button>
-                <button id="fullscreen-btn">📺 Полный экран</button>
-                
-                <div class="font-controls">
-                    <button id="decrease-font-btn" title="Уменьшить шрифт">A-</button>
-                    <span id="font-size">16px</span>
-                    <button id="increase-font-btn" title="Увеличить шрифт">A+</button>
-                </div>
-                
-                <!-- Навигация PDF (скрыта по умолчанию) -->
-                <div id="pdf-nav" style="display: none;" class="pdf-nav">
-                    <button id="prev-page-btn" title="Предыдущая страница">←</button>
-                    <span id="page-info">Стр. 1/1</span>
-                    <button id="next-page-btn" title="Следующая страница">→</button>
-                </div>
+            <div class="logo">
+                <div class="logo-icon">📚</div>
+                <h1>IT-Библиотека</h1>
             </div>
             
-            <!-- Информация о текущей книге -->
-            <div id="book-info" class="book-info" style="display: none;">
-                <div class="book-info-left">
-                    <span id="book-title">Название книги</span>
-                    <div id="book-meta" class="book-meta"></div>
-                </div>
-                <button id="save-btn" class="save-btn">💾 Сохранить в облако</button>
+            <div class="controls">
+                <button id="themeToggle" class="theme-toggle" aria-label="Переключить тему">
+                    <span class="theme-icon">🌙</span>
+                </button>
+                <button id="uploadBtn" class="secondary">
+                    <span class="btn-icon">📤</span> Загрузить книгу
+                </button>
             </div>
         </header>
 
         <main>
-            <!-- Приветственный экран -->
-            <div id="welcome-screen" class="welcome-screen">
-                <div class="welcome-content">
-                    <h2>Добро пожаловать в IT Books Reader!</h2>
-                    <p>Простое приложение для чтения IT-литературы</p>
-                    
-                    <div class="features">
-                        <div class="feature">
-                            <span>📖</span>
-                            <h3>Поддержка форматов</h3>
-                            <p>Читайте книги в форматах TXT и PDF</p>
-                        </div>
-                        <div class="feature">
-                            <span>⌨️</span>
-                            <h3>Управление клавиатурой</h3>
-                            <p>← → для навигации, ↑ ↓ для шрифта</p>
-                        </div>
-                        <div class="feature">
-                            <span>📺</span>
-                            <h3>Полный экран</h3>
-                            <p>Погрузитесь в чтение без отвлекающих элементов</p>
-                        </div>
-                        <div class="feature">
-                            <span>☁️</span>
-                            <h3>Облачное хранение</h3>
-                            <p>Сохраняйте книги для доступа с разных устройств</p>
-                        </div>
-                    </div>
-                    
-                    <button id="start-btn" class="big-btn">
-                        📁 Начать чтение - выбрать файл
+            <section class="upload-section" id="uploadSection">
+                <h2>Загрузите свою книгу</h2>
+                <p>Поддерживаемые форматы: PDF и TXT</p>
+                
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📄</div>
+                    <p>Перетащите файл сюда или нажмите для выбора</p>
+                    <p class="upload-hint">Максимальный размер: 10 MB</p>
+                </div>
+                
+                <input type="file" id="fileInput" accept=".pdf,.txt" style="display: none;">
+                
+                <div class="file-info" id="fileInfo" style="display: none;">
+                    <h3>Выбранный файл:</h3>
+                    <p id="fileName"></p>
+                    <button id="readBtn" class="primary">
+                        <span class="btn-icon">👁️</span> Начать чтение
                     </button>
-                    <p class="formats">Поддерживаемые форматы: .txt, .pdf (до 50MB)</p>
-                    
-                    <!-- Облачные книги (скрыто по умолчанию) -->
-                    <div id="cloud-books" class="cloud-books" style="display: none;">
-                        <h3>📚 Ваши облачные книги</h3>
-                        <div id="cloud-list" class="cloud-list">
-                            <!-- Список книг появится здесь -->
+                </div>
+            </section>
+
+            <section class="reader-section" id="readerSection" style="display: none;">
+                <div class="reader-header">
+                    <h2 id="bookTitle">Название книги</h2>
+                    <div class="reader-controls">
+                        <button id="prevPage" class="secondary page-nav">
+                            <span class="btn-icon">◀</span> Назад
+                        </button>
+                        <div class="page-info">
+                            Страница: <span id="currentPage">1</span> / <span id="totalPages">1</span>
                         </div>
+                        <button id="nextPage" class="secondary page-nav">
+                            Вперед <span class="btn-icon">▶</span>
+                        </button>
+                        <button id="fullscreenBtn" class="secondary">
+                            <span class="btn-icon">⛶</span> Полный экран
+                        </button>
+                        <button id="closeReader" class="secondary">
+                            <span class="btn-icon">✕</span> Закрыть
+                        </button>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Контент книги (TXT) -->
-            <div id="book-content" class="book-content" style="display: none;"></div>
-            
-            <!-- Контейнер для PDF -->
-            <div id="pdf-viewer" style="display: none;"></div>
+
+                <div class="reader-content" id="readerContent">
+                    <!-- Контент книги будет здесь -->
+                    <div class="book-placeholder">
+                        <p>Загрузите книгу, чтобы начать чтение</p>
+                    </div>
+                </div>
+
+                <div class="reader-footer">
+                    <div class="zoom-controls">
+                        <button id="zoomOut" class="icon-btn" title="Уменьшить">-</button>
+                        <span id="zoomLevel">100%</span>
+                        <button id="zoomIn" class="icon-btn" title="Увеличить">+</button>
+                    </div>
+                    <div class="navigation-hint">
+                        <p>💡 Используйте стрелки ← → для навигации</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="instructions">
+                <h2>Инструкция по использованию</h2>
+                <div class="instruction-grid">
+                    <div class="instruction-card">
+                        <div class="instruction-icon">📤</div>
+                        <h3>Загрузка</h3>
+                        <p>Загрузите книгу в формате PDF или TXT. Регистрация не требуется.</p>
+                    </div>
+                    <div class="instruction-card">
+                        <div class="instruction-icon">🎨</div>
+                        <h3>Темы</h3>
+                        <p>Переключайтесь между светлой и тёмной темой для комфортного чтения.</p>
+                    </div>
+                    <div class="instruction-card">
+                        <div class="instruction-icon">📱</div>
+                        <h3>Адаптивность</h3>
+                        <p>Сайт оптимизирован для ПК и мобильных устройств.</p>
+                    </div>
+                    <div class="instruction-card">
+                        <div class="instruction-icon">⛶</div>
+                        <h3>Полный экран</h3>
+                        <p>Режим полного экрана для погружения в чтение.</p>
+                    </div>
+                </div>
+            </section>
         </main>
+
+        <footer>
+            <p>Курсовой проект "Просмотр электронных книг по информационным технологиям"</p>
+            <p>© 2023 IT-Библиотека | Все права защищены</p>
+        </footer>
+    </div>
+
+    <!-- Элементы для полного экрана -->
+    <div class="fullscreen-overlay" id="fullscreenOverlay" style="display: none;">
+        <div class="fullscreen-header">
+            <button id="exitFullscreen" class="secondary">
+                <span class="btn-icon">✕</span> Выйти из полного экрана
+            </button>
+        </div>
         
-        <!-- Уведомления -->
-        <div id="notification" class="notification"></div>
+        <div class="fullscreen-content" id="fullscreenContent">
+            <!-- Контент книги в полном экране -->
+        </div>
         
-        <!-- Индикатор полного экрана -->
-        <div id="fullscreen-hint" class="fullscreen-hint" style="display: none;">
-            📺 Полный экран • Нажмите ESC для выхода
+        <div class="fullscreen-nav left-nav" id="prevPageFull">
+            <span class="nav-arrow">◀</span>
+        </div>
+        <div class="fullscreen-nav right-nav" id="nextPageFull">
+            <span class="nav-arrow">▶</span>
         </div>
     </div>
 
-    <!-- Подключение конфига Firebase -->
-    <script src="firebase-config.js"></script>
-    <!-- Основной скрипт -->
-    <script src="script.js"></script>
+    <!-- Firebase конфигурация -->
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyC6kqLtB2oVq1cV6M4Pq9zQwXpYdNzqQr0",
+            authDomain: "it-library-courses.firebaseapp.com",
+            projectId: "it-library-courses",
+            storageBucket: "it-library-courses.appspot.com",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:abcdef1234567890"
+        };
+    </script>
+    
+    <script src="app.js"></script>
 </body>
 </html>
