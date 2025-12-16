@@ -1,13 +1,15 @@
 // ==================== КОНФИГУРАЦИЯ FIREBASE ====================
-// Импортируем из отдельного файла
+// Импортируем конфиг из отдельного файла
 const firebaseConfig = window.firebaseConfig || {
-    apiKey: "AIzaSyDqnau8N2mHjhOTMpxXqYe8EDGfxqGqQn0",
-    authDomain: "my-first-kyrsachic.firebaseapp.com",
-    projectId: "my-first-kyrsachic",
-    storageBucket: "my-first-kyrsachic.firebasestorage.app",
-    messagingSenderId: "741117010262",
-    appId: "1:741117010262:web:2972f2e62517ccc2b9f6f7"
+    // ⚠️ Оставьте ЭТОТ БЛОК ПУСТЫМ или с заглушками
+    apiKey: "",
+    authDomain: "",
+    projectId: "",
+    storageBucket: "",
+    messagingSenderId: "",
+    appId: ""
 };
+
 
 // ==================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ И КЭШ ====================
 const DOM = {
@@ -1385,3 +1387,4 @@ if (typeof module !== 'undefined' && module.exports) {
         formatFileSize
     };
 }
+
