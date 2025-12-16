@@ -38,11 +38,20 @@ class BookStorage {
             dateAdded: new Date().toISOString(),
             views: 0,
             downloads: 0,
+            // Добавляем информацию о пользователе, если он авторизован
+            uploadedBy: window.userManager?.currentUser?.id || null,
+            uploadedByName: window.userManager?.currentUser?.username || 'Аноним',
             ...bookData
         };
         
         books.unshift(newBook);
         this.saveBooks(books);
+        
+        // Добавляем книгу к пользователю
+        if (window.userManager?.currentUser) {
+            window.userManager.addBookToUser(newBook.id);
+        }
+        
         return newBook;
     }
     
@@ -72,7 +81,14 @@ class BookStorage {
     incrementViews(id) {
         const book = this.getBookById(id);
         if (book) {
-            return this.updateBook(id, { views: (book.views || 0) + 1 });
+            const updatedBook = this.updateBook(id, { views: (book.views || 0) + 1 });
+            
+            // Обновляем статистику пользователя
+            if (book.uploadedBy && window.userManager) {
+                window.userManager.updateUserStats(id, 1, 0);
+            }
+            
+            return updatedBook;
         }
         return null;
     }
@@ -81,7 +97,14 @@ class BookStorage {
     incrementDownloads(id) {
         const book = this.getBookById(id);
         if (book) {
-            return this.updateBook(id, { downloads: (book.downloads || 0) + 1 });
+            const updatedBook = this.updateBook(id, { downloads: (book.downloads || 0) + 1 });
+            
+            // Обновляем статистику пользователя
+            if (book.uploadedBy && window.userManager) {
+                window.userManager.updateUserStats(id, 0, 1);
+            }
+            
+            return updatedBook;
         }
         return null;
     }
@@ -95,7 +118,8 @@ class BookStorage {
             book.title.toLowerCase().includes(searchTerm) ||
             book.author.toLowerCase().includes(searchTerm) ||
             book.description.toLowerCase().includes(searchTerm) ||
-            book.genre.toLowerCase().includes(searchTerm)
+            book.genre.toLowerCase().includes(searchTerm) ||
+            book.uploadedByName.toLowerCase().includes(searchTerm)
         );
     }
     
@@ -105,10 +129,24 @@ class BookStorage {
         return books.filter(book => book.genre === genre);
     }
     
+    // Получить книги пользователя
+    getBooksByUser(userId) {
+        const books = this.getAllBooks();
+        return books.filter(book => book.uploadedBy === userId);
+    }
+    
     // Получить последние книги
     getRecentBooks(limit = 8) {
         const books = this.getAllBooks();
         return books.slice(0, limit);
+    }
+    
+    // Получить популярные книги
+    getPopularBooks(limit = 8) {
+        const books = this.getAllBooks();
+        return books
+            .sort((a, b) => (b.views || 0) - (a.views || 0))
+            .slice(0, limit);
     }
     
     // Сохранить все книги
