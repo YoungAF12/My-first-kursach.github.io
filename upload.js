@@ -3,7 +3,42 @@
 class UploadManager {
     constructor() {
         this.selectedFile = null;
+        this.initTheme();
         this.init();
+    }
+    
+    initTheme() {
+        // Применяем сохранённую тему
+        const savedTheme = localStorage.getItem('digital-library-theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        
+        // Инициализация переключателя темы на странице загрузки
+        const themeToggle = document.getElementById('themeToggle');
+        if (themeToggle) {
+            themeToggle.addEventListener('click', () => this.toggleTheme());
+            this.updateThemeIcon();
+        }
+    }
+    
+    toggleTheme() {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('digital-library-theme', newTheme);
+        this.updateThemeIcon();
+    }
+    
+    updateThemeIcon() {
+        const icon = document.querySelector('#themeToggle i');
+        if (icon) {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            icon.className = currentTheme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+            // Обновляем текст
+            const text = icon.nextElementSibling;
+            if (text) {
+                text.textContent = currentTheme === 'light' ? 'Тёмная' : 'Светлая';
+            }
+        }
     }
     
     init() {
@@ -19,39 +54,45 @@ class UploadManager {
         const removeFile = document.getElementById('removeFile');
         
         // Клик по области загрузки
-        dropArea.addEventListener('click', () => fileInput.click());
+        if (dropArea) dropArea.addEventListener('click', () => fileInput.click());
         
         // Drag & Drop
-        dropArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropArea.classList.add('drag-over');
-        });
-        
-        dropArea.addEventListener('dragleave', () => {
-            dropArea.classList.remove('drag-over');
-        });
-        
-        dropArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropArea.classList.remove('drag-over');
+        if (dropArea) {
+            dropArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropArea.classList.add('drag-over');
+            });
             
-            if (e.dataTransfer.files.length) {
-                this.handleFileSelect(e.dataTransfer.files[0]);
-            }
-        });
+            dropArea.addEventListener('dragleave', () => {
+                dropArea.classList.remove('drag-over');
+            });
+            
+            dropArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropArea.classList.remove('drag-over');
+                
+                if (e.dataTransfer.files.length) {
+                    this.handleFileSelect(e.dataTransfer.files[0]);
+                }
+            });
+        }
         
         // Выбор файла через input
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length) {
-                this.handleFileSelect(e.target.files[0]);
-            }
-        });
+        if (fileInput) {
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length) {
+                    this.handleFileSelect(e.target.files[0]);
+                }
+            });
+        }
         
         // Удаление выбранного файла
-        removeFile.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.clearFileSelection();
-        });
+        if (removeFile) {
+            removeFile.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.clearFileSelection();
+            });
+        }
     }
     
     handleFileSelect(file) {
@@ -78,6 +119,8 @@ class UploadManager {
     
     updateFileDisplay(file) {
         const selectedFile = document.getElementById('selectedFile');
+        if (!selectedFile) return;
+        
         const fileName = selectedFile.querySelector('.file-name');
         const fileSize = selectedFile.querySelector('.file-size');
         
@@ -90,14 +133,16 @@ class UploadManager {
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         };
         
-        fileName.textContent = file.name;
-        fileSize.textContent = formatSize(file.size);
+        if (fileName) fileName.textContent = file.name;
+        if (fileSize) fileSize.textContent = formatSize(file.size);
         selectedFile.style.display = 'flex';
     }
     
     updateFileFormat(extension) {
         const formatSelect = document.getElementById('bookFormat');
-        formatSelect.value = extension;
+        if (formatSelect) {
+            formatSelect.value = extension;
+        }
     }
     
     clearFileSelection() {
@@ -106,76 +151,86 @@ class UploadManager {
         const fileInput = document.getElementById('fileInput');
         const formatSelect = document.getElementById('bookFormat');
         
-        selectedFile.style.display = 'none';
-        selectedFile.querySelector('.file-name').textContent = 'Файл не выбран';
-        selectedFile.querySelector('.file-size').textContent = '-';
-        fileInput.value = '';
-        formatSelect.value = '';
+        if (selectedFile) {
+            selectedFile.style.display = 'none';
+            const fileName = selectedFile.querySelector('.file-name');
+            const fileSize = selectedFile.querySelector('.file-size');
+            if (fileName) fileName.textContent = 'Файл не выбран';
+            if (fileSize) fileSize.textContent = '-';
+        }
+        
+        if (fileInput) fileInput.value = '';
+        if (formatSelect) formatSelect.value = '';
     }
     
     initForm() {
         const form = document.getElementById('uploadForm');
         const submitBtn = document.getElementById('submitBtn');
         
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            if (!this.selectedFile) {
-                this.showNotification('Пожалуйста, выберите файл', 'error');
-                return;
-            }
-            
-            // Получаем данные формы
-            const bookData = {
-                title: document.getElementById('bookTitle').value.trim(),
-                author: document.getElementById('bookAuthor').value.trim(),
-                genre: document.getElementById('bookGenre').value,
-                format: document.getElementById('bookFormat').value,
-                description: document.getElementById('bookDescription').value.trim()
-            };
-            
-            // Проверка заполнения полей
-            if (!bookData.title || !bookData.author || !bookData.genre || !bookData.format) {
-                this.showNotification('Заполните все обязательные поля', 'error');
-                return;
-            }
-            
-            // Показываем прогресс бар
-            this.showProgress();
-            
-            try {
-                // Читаем содержимое файла
-                const fileContent = await this.readFileContent(this.selectedFile);
+        if (form && submitBtn) {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
                 
-                // Добавляем книгу в хранилище
-                const bookWithContent = {
-                    ...bookData,
-                    fileContent: fileContent,
-                    size: this.selectedFile.size
+                if (!this.selectedFile) {
+                    this.showNotification('Пожалуйста, выберите файл', 'error');
+                    return;
+                }
+                
+                // Получаем данные формы
+                const bookData = {
+                    title: document.getElementById('bookTitle').value.trim(),
+                    author: document.getElementById('bookAuthor').value.trim(),
+                    genre: document.getElementById('bookGenre').value,
+                    format: document.getElementById('bookFormat').value,
+                    description: document.getElementById('bookDescription').value.trim(),
+                    // Добавляем информацию о пользователе
+                    uploadedBy: window.userManager?.currentUser?.id || null,
+                    uploadedByName: window.userManager?.currentUser?.username || 'Аноним'
                 };
                 
-                // Имитация загрузки
-                await this.simulateUpload();
+                // Проверка заполнения полей
+                if (!bookData.title || !bookData.author || !bookData.genre || !bookData.format) {
+                    this.showNotification('Заполните все обязательные поля', 'error');
+                    return;
+                }
                 
-                // Сохраняем книгу
-                bookStorage.addBook(bookWithContent);
+                // Показываем прогресс бар
+                this.showProgress();
                 
-                // Успешное завершение
-                this.showNotification('Книга успешно загружена!', 'success');
-                this.resetForm();
-                
-                // Перенаправляем в библиотеку через 2 секунды
-                setTimeout(() => {
-                    window.location.href = 'library.html';
-                }, 2000);
-                
-            } catch (error) {
-                this.showNotification('Ошибка при загрузке файла', 'error');
-                console.error('Upload error:', error);
-            } finally {
-                this.hideProgress();
-            }
-        });
+                try {
+                    // Читаем содержимое файла
+                    const fileContent = await this.readFileContent(this.selectedFile);
+                    
+                    // Добавляем книгу в хранилище
+                    const bookWithContent = {
+                        ...bookData,
+                        fileContent: fileContent,
+                        size: this.selectedFile.size
+                    };
+                    
+                    // Имитация загрузки
+                    await this.simulateUpload();
+                    
+                    // Сохраняем книгу
+                    bookStorage.addBook(bookWithContent);
+                    
+                    // Успешное завершение
+                    this.showNotification('Книга успешно загружена!', 'success');
+                    this.resetForm();
+                    
+                    // Перенаправляем в библиотеку через 2 секунды
+                    setTimeout(() => {
+                        window.location.href = 'library.html';
+                    }, 2000);
+                    
+                } catch (error) {
+                    this.showNotification('Ошибка при загрузке файла', 'error');
+                    console.error('Upload error:', error);
+                } finally {
+                    this.hideProgress();
+                }
+            });
+        }
     }
     
     readFileContent(file) {
@@ -219,18 +274,24 @@ class UploadManager {
     
     initProgress() {
         const progress = document.getElementById('uploadProgress');
-        progress.style.display = 'none';
+        if (progress) {
+            progress.style.display = 'none';
+        }
     }
     
     showProgress() {
         const progress = document.getElementById('uploadProgress');
-        progress.style.display = 'block';
-        this.updateProgress(0, 'Подготовка...');
+        if (progress) {
+            progress.style.display = 'block';
+            this.updateProgress(0, 'Подготовка...');
+        }
     }
     
     hideProgress() {
         const progress = document.getElementById('uploadProgress');
-        progress.style.display = 'none';
+        if (progress) {
+            progress.style.display = 'none';
+        }
     }
     
     updateProgress(percent, status) {
@@ -238,18 +299,21 @@ class UploadManager {
         const progressPercent = document.querySelector('.progress-percent');
         const progressStatus = document.querySelector('.progress-status');
         
-        progressFill.style.width = `${percent}%`;
-        progressPercent.textContent = `${Math.round(percent)}%`;
-        progressStatus.textContent = status;
+        if (progressFill) progressFill.style.width = `${percent}%`;
+        if (progressPercent) progressPercent.textContent = `${Math.round(percent)}%`;
+        if (progressStatus) progressStatus.textContent = status;
     }
     
     resetForm() {
-        document.getElementById('uploadForm').reset();
+        const form = document.getElementById('uploadForm');
+        if (form) form.reset();
         this.clearFileSelection();
     }
     
     showNotification(message, type = 'info') {
         const container = document.getElementById('notificationContainer');
+        if (!container) return;
+        
         const notification = document.createElement('div');
         notification.className = `notification ${type}`;
         notification.innerHTML = `
