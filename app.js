@@ -1,13 +1,12 @@
 // ============ КОНФИГУРАЦИЯ FIREBASE ============
-// ЗАМЕНИТЕ ЭТУ КОНФИГУРАЦИЮ НА СВОЮ ИЗ FIREBASE CONSOLE
+// ВАЖНО: Замените эту конфигурацию на вашу из Firebase Console!
 const firebaseConfig = {
-  apiKey: "AIzaSyDqnau8N2mHjhOTMpxXqYe8EDGfxqGqQn0",
-  authDomain: "my-first-kyrsachic.firebaseapp.com",
-  projectId: "my-first-kyrsachic",
-  storageBucket: "my-first-kyrsachic.firebasestorage.app",
-  messagingSenderId: "741117010262",
-  appId: "1:741117010262:web:2972f2e62517ccc2b9f6f7",
-  measurementId: "G-81YS0ZHEXX"
+    apiKey: "ВАШ_API_KEY",
+    authDomain: "ВАШ_PROJECT_ID.firebaseapp.com",
+    projectId: "ВАШ_PROJECT_ID",
+    storageBucket: "ВАШ_PROJECT_ID.appspot.com",
+    messagingSenderId: "ВАШ_MESSAGING_SENDER_ID",
+    appId: "ВАШ_APP_ID"
 };
 
 // Инициализация Firebase
@@ -21,6 +20,7 @@ const categories = ["Все", "Классика", "Фэнтези", "Научн�
 let currentUser = null;
 let adminUser = null;
 let isAdminMode = false;
+let booksData = []; // Храним загруженные книги
 
 // ============ DOM ЭЛЕМЕНТЫ ============
 const booksGrid = document.getElementById('booksGrid');
@@ -63,9 +63,9 @@ function loadBooksFromFirestore() {
     loadingBooks.style.display = 'block';
     loadingBooks.innerHTML = '<div class="loader"></div><p>Загрузка книг...</p>';
     
-    db.collection("books").get()
+    db.collection("books").orderBy("title").get()
         .then((querySnapshot) => {
-            const booksData = [];
+            booksData = [];
             querySnapshot.forEach((doc) => {
                 const book = doc.data();
                 book.id = doc.id;
@@ -73,60 +73,40 @@ function loadBooksFromFirestore() {
             });
             
             if (booksData.length === 0) {
-                console.log("No books found in Firestore, using demo data");
-                useDemoBooks();
+                console.log("No books found in Firestore");
+                displayNoBooksMessage();
             } else {
                 console.log(`Loaded ${booksData.length} books from Firestore`);
                 displayBooks(booksData);
             }
         })
         .catch((error) => {
-            console.log("Error loading books:", error);
-            useDemoBooks();
+            console.error("Error loading books:", error);
+            displayNoBooksMessage();
+            showNotification('Ошибка загрузки книг: ' + error.message, 'error');
         });
 }
 
-// Использование демо-книг (если Firestore пуст)
-function useDemoBooks() {
-    const demoBooks = [
-        {
-            id: "demo1",
-            title: "Мастер и Маргарита",
-            author: "Михаил Булгаков",
-            description: "Одно из самых загадочных произведений русской литературы XX века, сочетающее в себе мистику, сатиру и философские размышления.",
-            category: "Классика",
-            cover: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-            fileUrl: "https://www.gutenberg.org/files/1259/1259-0.txt",
-            downloads: 1250,
-            format: "PDF",
-            fileSize: "1.2 MB",
-            year: 1967,
-            pages: 384,
-            language: "Русский"
-        },
-        {
-            id: "demo2",
-            title: "1984",
-            author: "Джордж Оруэлл",
-            description: "Антиутопический роман, описывающий тоталитарное общество под постоянным наблюдением Большого Брата.",
-            category: "Научная фантастика",
-            cover: "https://images.unsplash.com/photo-1516979187457-637abb4f9353?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-            fileUrl: "https://www.gutenberg.org/files/1259/1259-0.txt",
-            downloads: 890,
-            format: "PDF",
-            fileSize: "0.9 MB",
-            year: 1949,
-            pages: 328,
-            language: "Русский"
-        }
-    ];
+// Сообщение, если книг нет
+function displayNoBooksMessage() {
+    booksGrid.innerHTML = `
+        <div style="grid-column: 1 / -1; text-align: center; padding: 40px;">
+            <i class="fas fa-book" style="font-size: 48px; color: #ccc; margin-bottom: 20px;"></i>
+            <h3>Библиотека пуста</h3>
+            <p>Книги еще не добавлены. Станьте первым, кто добавит книгу!</p>
+            ${currentUser && adminUser ? 
+                '<button id="addFirstBookBtn" class="btn" style="margin-top: 20px;">Добавить первую книгу</button>' : 
+                ''
+            }
+        </div>
+    `;
+    loadingBooks.style.display = 'none';
     
-    displayBooks(demoBooks);
-    
-    // Добавляем демо-книги в Firestore
-    demoBooks.forEach(book => {
-        db.collection("books").add(book).catch(error => console.log("Error adding demo book:", error));
-    });
+    if (currentUser && adminUser) {
+        document.getElementById('addFirstBookBtn').addEventListener('click', () => {
+            addBookModal.style.display = 'flex';
+        });
+    }
 }
 
 // Инициализация категорий
@@ -137,9 +117,25 @@ function initCategories() {
         button.className = `category-btn ${category === 'Все' ? 'active' : ''}`;
         button.textContent = category;
         button.dataset.category = category;
-        button.addEventListener('click', filterByCategory);
+        button.addEventListener('click', (e) => filterByCategory(e, category));
         categoryFilter.appendChild(button);
     });
+}
+
+// Фильтрация книг по категории
+function filterByCategory(e, category) {
+    // Обновляем активную кнопку
+    document.querySelectorAll('.category-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    
+    if (category === 'Все') {
+        displayBooks(booksData);
+    } else {
+        const filteredBooks = booksData.filter(book => book.category === category);
+        displayBooks(filteredBooks);
+    }
 }
 
 // Отображение книг
@@ -147,8 +143,12 @@ function displayBooks(books) {
     booksGrid.innerHTML = '';
     loadingBooks.style.display = 'none';
     
-    if (books.length === 0) {
-        booksGrid.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; font-size: 1.2rem; padding: 40px;">Книги не найдены</p>';
+    if (!books || books.length === 0) {
+        booksGrid.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 40px;">
+                <p>Книги не найдены</p>
+            </div>
+        `;
         return;
     }
     
@@ -157,11 +157,11 @@ function displayBooks(books) {
         bookCard.className = 'book-card';
         bookCard.innerHTML = `
             <div class="book-cover">
-                <img src="${book.cover}" alt="${book.title}" onerror="this.src='https://images.unsplash.com/photo-1541963463532-d68292c34b19?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80'">
-                ${isAdminMode ? `<div class="book-actions">
-                    <button class="book-action-btn book-action-edit" data-id="${book.id}" title="Редактировать">
-                        <i class="fas fa-edit"></i>
-                    </button>
+                <img src="${book.cover || 'https://images.unsplash.com/photo-1541963463532-d68292c34b19?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80'}" 
+                     alt="${book.title}" 
+                     onerror="this.src='https://images.unsplash.com/photo-1541963463532-d68292c34b19?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80'">
+                ${isAdminMode ? `
+                <div class="book-actions">
                     <button class="book-action-btn book-action-delete" data-id="${book.id}" title="Удалить">
                         <i class="fas fa-trash"></i>
                     </button>
@@ -173,11 +173,10 @@ function displayBooks(books) {
                 <p class="book-description">${book.description || 'Описание отсутствует'}</p>
                 <div class="book-details">
                     <div class="book-meta">
-                        <span class="book-category">${book.category}</span>
+                        <span class="book-category">${book.category || 'Не указана'}</span>
                         <span class="book-format">${book.format || 'PDF'}</span>
                         ${book.fileSize ? `<span class="book-size">${book.fileSize}</span>` : ''}
                     </div>
-                    ${book.year || book.pages || book.language ? `
                     <div class="book-details-grid">
                         ${book.year ? `<div class="book-detail-item">
                             <span class="book-detail-label">Год</span>
@@ -191,7 +190,7 @@ function displayBooks(books) {
                             <span class="book-detail-label">Язык</span>
                             <span class="book-detail-value">${book.language}</span>
                         </div>` : ''}
-                    </div>` : ''}
+                    </div>
                 </div>
                 <div class="book-meta" style="margin-top: 15px;">
                     <span style="font-size: 0.9rem; color: #666;">Скачано: ${book.downloads || 0}</span>
@@ -204,7 +203,7 @@ function displayBooks(books) {
         booksGrid.appendChild(bookCard);
     });
     
-    // Добавляем обработчики событий для кнопок скачивания
+    // Обработчики для кнопок скачивания
     document.querySelectorAll('.book-download').forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.preventDefault();
@@ -213,16 +212,8 @@ function displayBooks(books) {
         });
     });
     
-    // Обработчики для админских кнопок (если режим админа включен)
+    // Обработчики для админских кнопок удаления
     if (isAdminMode) {
-        document.querySelectorAll('.book-action-edit').forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                const bookId = this.getAttribute('data-id');
-                editBook(bookId);
-            });
-        });
-        
         document.querySelectorAll('.book-action-delete').forEach(btn => {
             btn.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -233,108 +224,84 @@ function displayBooks(books) {
     }
 }
 
-// Фильтрация книг по категории
-function filterByCategory(e) {
-    const category = e.target.dataset.category;
-    
-    // Обновляем активную кнопку
-    document.querySelectorAll('.category-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    e.target.classList.add('active');
-    
-    // Если выбрано "Все", показываем все книги
-    if (category === 'Все') {
-        document.querySelectorAll('.book-card').forEach(card => {
-            card.style.display = 'block';
-        });
-    } else {
-        // Фильтруем по категории
-        document.querySelectorAll('.book-card').forEach(card => {
-            const bookCategory = card.querySelector('.book-category').textContent;
-            if (bookCategory === category) {
-                card.style.display = 'block';
-            } else {
-                card.style.display = 'none';
-            }
-        });
-    }
-}
-
 // Поиск книг
 function searchBooks() {
     const searchTerm = searchInput.value.toLowerCase().trim();
     
     if (searchTerm === '') {
-        // Показываем все книги текущей категории
         const activeCategory = document.querySelector('.category-btn.active').dataset.category;
-        filterByCategory({ target: document.querySelector(`[data-category="${activeCategory}"]`) });
+        if (activeCategory === 'Все') {
+            displayBooks(booksData);
+        } else {
+            const filteredBooks = booksData.filter(book => book.category === activeCategory);
+            displayBooks(filteredBooks);
+        }
         return;
     }
     
-    document.querySelectorAll('.book-card').forEach(card => {
-        const title = card.querySelector('.book-title').textContent.toLowerCase();
-        const author = card.querySelector('.book-author').textContent.toLowerCase();
-        const description = card.querySelector('.book-description').textContent.toLowerCase();
-        const category = card.querySelector('.book-category').textContent.toLowerCase();
-        
-        if (title.includes(searchTerm) || author.includes(searchTerm) || 
-            description.includes(searchTerm) || category.includes(searchTerm)) {
-            card.style.display = 'block';
-        } else {
-            card.style.display = 'none';
-        }
-    });
+    const filteredBooks = booksData.filter(book => 
+        (book.title && book.title.toLowerCase().includes(searchTerm)) || 
+        (book.author && book.author.toLowerCase().includes(searchTerm)) || 
+        (book.description && book.description.toLowerCase().includes(searchTerm)) ||
+        (book.category && book.category.toLowerCase().includes(searchTerm))
+    );
+    
+    displayBooks(filteredBooks);
 }
 
 // Скачивание книги
 function downloadBook(bookId) {
     if (!currentUser) {
-        alert('Для скачивания книг необходимо войти в систему');
+        showNotification('Для скачивания книг необходимо войти в систему', 'error');
         loginModal.style.display = 'flex';
         return;
     }
     
-    // Находим книгу в Firestore
-    db.collection("books").doc(bookId).get()
-        .then((doc) => {
-            if (doc.exists) {
-                const book = doc.data();
-                
-                // Показываем детали книги перед скачиванием
-                showBookDetails(book, bookId);
-                
-                // Обновляем счетчик скачиваний
-                const currentDownloads = book.downloads || 0;
-                db.collection("books").doc(bookId).update({
-                    downloads: currentDownloads + 1
-                });
-                
-                // Обновляем статистику пользователя
-                updateUserDownloadStats(bookId, book.title);
-            }
-        })
-        .catch(error => {
-            console.error("Error getting book:", error);
-            alert('Ошибка загрузки информации о книге');
-        });
+    // Находим книгу
+    const book = booksData.find(b => b.id === bookId);
+    if (!book) {
+        showNotification('Книга не найдена', 'error');
+        return;
+    }
+    
+    // Показываем детали книги
+    showBookDetails(book);
+    
+    // Обновляем счетчик скачиваний в Firestore
+    const currentDownloads = book.downloads || 0;
+    db.collection("books").doc(bookId).update({
+        downloads: currentDownloads + 1
+    }).then(() => {
+        // Обновляем локальные данные
+        book.downloads = currentDownloads + 1;
+        
+        // Обновляем статистику пользователя
+        updateUserDownloadStats(bookId, book.title);
+    }).catch(error => {
+        console.error("Error updating download count:", error);
+    });
 }
 
-// Показать детали книги перед скачиванием
-function showBookDetails(book, bookId) {
+// Показать детали книги
+function showBookDetails(book) {
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.style.display = 'flex';
+    
+    const downloadUrl = book.fileUrl || '#';
+    const fileName = `${book.title.replace(/[^a-z0-9]/gi, '_')}.pdf`;
+    
     modal.innerHTML = `
         <div class="book-details-popup">
             <div class="book-details-header">
-                <img src="${book.cover}" alt="${book.title}" class="book-details-cover" 
-                     onerror="this.src='https://images.unsplash.com/photo-1541963463532-d68292c34b19?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80'">
+                <img src="${book.cover || 'https://images.unsplash.com/photo-1541963463532-d68292c34b19?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80'}" 
+                     alt="${book.title}" 
+                     class="book-details-cover">
                 <div>
                     <h3 class="book-details-title">${book.title}</h3>
                     <p class="book-details-author">${book.author}</p>
                     <div style="margin-bottom: 15px;">
-                        <span class="book-category">${book.category}</span>
+                        <span class="book-category">${book.category || 'Не указана'}</span>
                         <span class="book-format">${book.format || 'PDF'}</span>
                         ${book.fileSize ? `<span class="book-size">${book.fileSize}</span>` : ''}
                     </div>
@@ -345,12 +312,14 @@ function showBookDetails(book, bookId) {
             </div>
             <p class="book-details-description">${book.description || 'Описание отсутствует'}</p>
             <p><strong>Скачано:</strong> ${(book.downloads || 0) + 1} раз</p>
-            <a href="${book.fileUrl}" class="book-download-large" download="${book.title}.pdf" target="_blank">
-                <i class="fas fa-download"></i> Скачать книгу (PDF)
-            </a>
-            <button class="btn btn-outline" style="margin-left: 10px;" id="closeBookDetails">
-                Закрыть
-            </button>
+            <div style="margin-top: 20px;">
+                <a href="${downloadUrl}" class="book-download-large" download="${fileName}" target="_blank">
+                    <i class="fas fa-download"></i> Скачать книгу (PDF)
+                </a>
+                <button class="btn btn-outline" style="margin-left: 10px;" id="closeBookDetails">
+                    Закрыть
+                </button>
+            </div>
         </div>
     `;
     
@@ -369,7 +338,7 @@ function showBookDetails(book, bookId) {
     });
 }
 
-// Обновление статистики скачиваний пользователя
+// Обновление статистики пользователя
 function updateUserDownloadStats(bookId, bookTitle) {
     if (!currentUser) return;
     
@@ -377,25 +346,20 @@ function updateUserDownloadStats(bookId, bookTitle) {
         lastDownload: firebase.firestore.FieldValue.serverTimestamp(),
         downloadsCount: firebase.firestore.FieldValue.increment(1)
     }).catch(error => {
-        console.log("Error updating user stats:", error);
+        console.error("Error updating user stats:", error);
     });
 }
 
-// ============ ФУНКЦИИ ДЛЯ РАБОТЫ С ПОЛЬЗОВАТЕЛЯМИ ============
+// ============ АУТЕНТИФИКАЦИЯ И ПОЛЬЗОВАТЕЛИ ============
 
 // Инициализация аутентификации
 function initAuth() {
-    // Проверка подключения к Firebase
-    console.log("Firebase initialized with project:", firebaseConfig.projectId);
-    
-    // Слушаем изменения состояния аутентификации
     auth.onAuthStateChanged(user => {
         if (user) {
             currentUser = user;
             console.log("User logged in:", user.email);
             checkAdminStatus(user);
             updateUIForLoggedInUser();
-            checkUserStatus(); // Проверяем наличие документа пользователя
         } else {
             currentUser = null;
             adminUser = null;
@@ -417,16 +381,16 @@ function checkAdminStatus(user) {
                     showAdminPanel();
                 }
             } else {
-                // Если документа нет, создаем его
+                // Создаем документ пользователя
                 createUserDocument(user);
             }
         })
         .catch(error => {
-            console.log("Error checking admin status:", error);
+            console.error("Error checking admin status:", error);
         });
 }
 
-// Создание документа пользователя в Firestore
+// Создание документа пользователя
 function createUserDocument(user) {
     db.collection("users").doc(user.uid).set({
         uid: user.uid,
@@ -435,65 +399,30 @@ function createUserDocument(user) {
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         role: 'user',
         lastLogin: firebase.firestore.FieldValue.serverTimestamp(),
-        downloadsCount: 0,
-        booksDownloaded: []
-    })
+        downloadsCount: 0
+    }, { merge: true })
     .then(() => {
-        console.log("User document created in Firestore for:", user.email);
+        console.log("User document created for:", user.email);
     })
     .catch(error => {
         console.error("Error creating user document:", error);
     });
 }
 
-// Проверка состояния пользователя
-function checkUserStatus() {
-    if (currentUser) {
-        console.log("Current user:", {
-            uid: currentUser.uid,
-            email: currentUser.email,
-            displayName: currentUser.displayName
-        });
-        
-        // Проверяем, есть ли документ в Firestore
-        db.collection("users").doc(currentUser.uid).get()
-            .then(doc => {
-                if (!doc.exists) {
-                    console.log("User document NOT found in Firestore!");
-                    createUserDocument(currentUser);
-                }
-            })
-            .catch(error => {
-                console.error("Error checking user document:", error);
-            });
-    }
-}
-
-// Регистрация пользователя
+// Регистрация
 function register(name, email, password) {
-    console.log("Starting registration process...");
-    
-    // Проверка пароля
     if (password.length < 6) {
-        alert('Пароль должен содержать минимум 6 символов');
+        showNotification('Пароль должен содержать минимум 6 символов', 'error');
         return;
     }
     
     auth.createUserWithEmailAndPassword(email, password)
         .then(userCredential => {
-            console.log("User created in Authentication");
-            
-            // Обновляем профиль в Authentication
             return userCredential.user.updateProfile({
                 displayName: name
-            }).then(() => {
-                return userCredential.user;
-            });
+            }).then(() => userCredential.user);
         })
         .then((user) => {
-            console.log("Creating user document in Firestore...");
-            
-            // Создаем документ пользователя в Firestore
             return db.collection("users").doc(user.uid).set({
                 uid: user.uid,
                 name: name,
@@ -501,47 +430,38 @@ function register(name, email, password) {
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 role: 'user',
                 lastLogin: firebase.firestore.FieldValue.serverTimestamp(),
-                booksDownloaded: []
+                downloadsCount: 0
             });
         })
         .then(() => {
-            console.log("Registration completed successfully!");
             registerModal.style.display = 'none';
             registerForm.reset();
             showNotification('Регистрация выполнена успешно!', 'success');
         })
         .catch(error => {
             console.error("Registration error:", error);
+            let errorMessage = 'Ошибка регистрации';
             
-            let errorMessage = 'Ошибка регистрации: ';
-            switch (error.code) {
-                case 'auth/email-already-in-use':
-                    errorMessage = 'Этот email уже используется';
-                    break;
-                case 'auth/invalid-email':
-                    errorMessage = 'Неверный формат email';
-                    break;
-                case 'auth/weak-password':
-                    errorMessage = 'Пароль слишком слабый';
-                    break;
-                case 'permission-denied':
-                    errorMessage = 'Ошибка доступа к базе данных. Пожалуйста, проверьте правила безопасности Firestore.';
-                    break;
-                default:
-                    errorMessage = error.message;
+            if (error.code === 'auth/email-already-in-use') {
+                errorMessage = 'Этот email уже используется';
+            } else if (error.code === 'auth/invalid-email') {
+                errorMessage = 'Неверный формат email';
+            } else if (error.code === 'auth/weak-password') {
+                errorMessage = 'Пароль слишком слабый';
+            } else if (error.code === 'permission-denied') {
+                errorMessage = 'Ошибка доступа к базе данных';
             }
+            
             showNotification(errorMessage, 'error');
         });
 }
 
-// Вход пользователя
+// Вход
 function login(email, password) {
     auth.signInWithEmailAndPassword(email, password)
         .then(userCredential => {
             const user = userCredential.user;
-            console.log("User logged in, updating Firestore...");
             
-            // Обновляем документ пользователя в Firestore
             return db.collection("users").doc(user.uid).set({
                 uid: user.uid,
                 email: user.email,
@@ -555,25 +475,21 @@ function login(email, password) {
             showNotification('Вход выполнен успешно!', 'success');
         })
         .catch(error => {
-            let errorMessage = 'Ошибка входа: ';
-            switch (error.code) {
-                case 'auth/invalid-email':
-                    errorMessage = 'Неверный формат email';
-                    break;
-                case 'auth/user-not-found':
-                    errorMessage = 'Пользователь не найден';
-                    break;
-                case 'auth/wrong-password':
-                    errorMessage = 'Неверный пароль';
-                    break;
-                default:
-                    errorMessage = error.message;
+            let errorMessage = 'Ошибка входа';
+            
+            if (error.code === 'auth/invalid-email') {
+                errorMessage = 'Неверный формат email';
+            } else if (error.code === 'auth/user-not-found') {
+                errorMessage = 'Пользователь не найден';
+            } else if (error.code === 'auth/wrong-password') {
+                errorMessage = 'Неверный пароль';
             }
+            
             showNotification(errorMessage, 'error');
         });
 }
 
-// Выход пользователя
+// Выход
 function logout() {
     auth.signOut()
         .then(() => {
@@ -589,58 +505,59 @@ function logout() {
 // Показать панель администратора
 function showAdminPanel() {
     const booksSection = document.querySelector('.books-section .container');
+    const existingPanel = document.querySelector('.admin-panel');
     
-    // Удаляем старую админ панель, если есть
-    const oldPanel = document.querySelector('.admin-panel');
-    if (oldPanel) oldPanel.remove();
+    if (existingPanel) {
+        existingPanel.remove();
+    }
     
-    const adminPanel = document.createElement('div');
-    adminPanel.className = 'admin-panel';
-    adminPanel.innerHTML = `
-        <div class="admin-header">
-            <h3>Панель администратора</h3>
-            <div class="admin-toggle">
-                <span>Режим админа:</span>
-                <label class="switch">
-                    <input type="checkbox" id="adminToggle" ${isAdminMode ? 'checked' : ''}>
-                    <span class="slider round"></span>
-                </label>
+    const adminPanelHTML = `
+        <div class="admin-panel">
+            <div class="admin-header">
+                <h3>Панель администратора</h3>
+                <div class="admin-toggle">
+                    <span>Режим админа:</span>
+                    <label class="switch">
+                        <input type="checkbox" id="adminToggle" ${isAdminMode ? 'checked' : ''}>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
             </div>
-        </div>
-        <div class="admin-controls">
-            <button id="addBookBtn" class="btn">
-                <i class="fas fa-plus"></i> Добавить книгу
-            </button>
-            <button id="viewUsersBtn" class="btn btn-outline">
-                <i class="fas fa-users"></i> Просмотр пользователей
-            </button>
-            <button id="refreshBooksBtn" class="btn btn-outline">
-                <i class="fas fa-sync"></i> Обновить
-            </button>
+            <div class="admin-controls">
+                <button id="addBookBtn" class="btn">
+                    <i class="fas fa-plus"></i> Добавить книгу
+                </button>
+                <button id="viewUsersBtn" class="btn btn-outline">
+                    <i class="fas fa-users"></i> Пользователи
+                </button>
+                <button id="refreshBooksBtn" class="btn btn-outline">
+                    <i class="fas fa-sync"></i> Обновить
+                </button>
+            </div>
         </div>
     `;
     
-    booksSection.insertBefore(adminPanel, booksSection.querySelector('.section-header'));
+    const sectionHeader = booksSection.querySelector('.section-header');
+    booksSection.insertAdjacentHTML('afterbegin', adminPanelHTML);
     
     // Назначаем обработчики
-    document.getElementById('adminToggle').addEventListener('change', toggleAdminMode);
+    document.getElementById('adminToggle').addEventListener('change', function(e) {
+        isAdminMode = e.target.checked;
+        loadBooksFromFirestore();
+    });
+    
     document.getElementById('addBookBtn').addEventListener('click', () => {
         addBookModal.style.display = 'flex';
     });
+    
     document.getElementById('viewUsersBtn').addEventListener('click', showUsersList);
     document.getElementById('refreshBooksBtn').addEventListener('click', loadBooksFromFirestore);
-}
-
-// Переключение режима админа
-function toggleAdminMode(e) {
-    isAdminMode = e.target.checked;
-    loadBooksFromFirestore(); // Перезагружаем книги для отображения кнопок админа
 }
 
 // Показать список пользователей
 function showUsersList() {
     if (!adminUser) {
-        showNotification('Эта функция доступна только администраторам', 'error');
+        showNotification('Доступно только администраторам', 'error');
         return;
     }
     
@@ -650,15 +567,14 @@ function showUsersList() {
             let userCount = 0;
             
             usersHTML += '<div style="max-height: 400px; overflow-y: auto; margin-top: 20px;">';
-            usersHTML += '<table>';
+            usersHTML += '<table style="width: 100%; border-collapse: collapse;">';
             usersHTML += '<thead><tr>';
-            usersHTML += '<th>Имя</th>';
-            usersHTML += '<th>Email</th>';
-            usersHTML += '<th>Роль</th>';
-            usersHTML += '<th>Дата регистрации</th>';
-            usersHTML += '<th>Скачано книг</th>';
-            usersHTML += '</tr></thead>';
-            usersHTML += '<tbody>';
+            usersHTML += '<th style="padding: 10px; border: 1px solid #ddd;">Имя</th>';
+            usersHTML += '<th style="padding: 10px; border: 1px solid #ddd;">Email</th>';
+            usersHTML += '<th style="padding: 10px; border: 1px solid #ddd;">Роль</th>';
+            usersHTML += '<th style="padding: 10px; border: 1px solid #ddd;">Дата регистрации</th>';
+            usersHTML += '<th style="padding: 10px; border: 1px solid #ddd;">Скачано</th>';
+            usersHTML += '</tr></thead><tbody>';
             
             querySnapshot.forEach((doc) => {
                 const user = doc.data();
@@ -669,29 +585,28 @@ function showUsersList() {
                     'Не указана';
                 
                 usersHTML += '<tr>';
-                usersHTML += `<td>${user.name || 'Не указано'}</td>`;
-                usersHTML += `<td>${user.email}</td>`;
-                usersHTML += `<td>
+                usersHTML += `<td style="padding: 10px; border: 1px solid #ddd;">${user.name || 'Не указано'}</td>`;
+                usersHTML += `<td style="padding: 10px; border: 1px solid #ddd;">${user.email}</td>`;
+                usersHTML += `<td style="padding: 10px; border: 1px solid #ddd;">
                     <select class="role-select" data-uid="${doc.id}" style="width: 100%; padding: 5px;">
                         <option value="user" ${user.role === 'user' ? 'selected' : ''}>Пользователь</option>
                         <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Администратор</option>
                     </select>
                 </td>`;
-                usersHTML += `<td>${createdAt}</td>`;
-                usersHTML += `<td>${user.downloadsCount || 0}</td>`;
+                usersHTML += `<td style="padding: 10px; border: 1px solid #ddd;">${createdAt}</td>`;
+                usersHTML += `<td style="padding: 10px; border: 1px solid #ddd;">${user.downloadsCount || 0}</td>`;
                 usersHTML += '</tr>';
             });
             
-            usersHTML += '</tbody></table>';
-            usersHTML += '</div>';
+            usersHTML += '</tbody></table></div>';
             usersHTML += `<p style="margin-top: 10px;"><strong>Всего пользователей:</strong> ${userCount}</p>`;
-            usersHTML += `<button id="saveRolesBtn" class="btn" style="margin-top: 10px;">Сохранить изменения ролей</button>`;
+            usersHTML += `<button id="saveRolesBtn" class="btn" style="margin-top: 10px;">Сохранить изменения</button>`;
             
             showUsersModal(usersHTML);
         })
         .catch((error) => {
             console.error("Error getting users:", error);
-            showNotification('Ошибка загрузки списка пользователей: ' + error.message, 'error');
+            showNotification('Ошибка загрузки пользователей', 'error');
         });
 }
 
@@ -701,7 +616,7 @@ function showUsersModal(content) {
     modal.className = 'modal';
     modal.style.display = 'flex';
     modal.innerHTML = `
-        <div class="modal-content" style="max-width: 800px; max-height: 80vh; overflow-y: auto;">
+        <div class="modal-content" style="max-width: 800px;">
             <span class="close-modal" id="closeUsersModal">&times;</span>
             ${content}
         </div>
@@ -713,7 +628,9 @@ function showUsersModal(content) {
         modal.remove();
     });
     
-    document.getElementById('saveRolesBtn').addEventListener('click', saveUserRoles);
+    document.getElementById('saveRolesBtn').addEventListener('click', () => {
+        saveUserRoles(modal);
+    });
     
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
@@ -723,7 +640,7 @@ function showUsersModal(content) {
 }
 
 // Сохранение ролей пользователей
-function saveUserRoles() {
+function saveUserRoles(modal) {
     const roleSelects = document.querySelectorAll('.role-select');
     let updatePromises = [];
     
@@ -740,13 +657,31 @@ function saveUserRoles() {
     
     Promise.all(updatePromises)
         .then(() => {
-            modal = document.querySelector('#usersModal');
-            if (modal) modal.remove();
-            showNotification('Роли пользователей успешно обновлены!', 'success');
+            modal.remove();
+            showNotification('Роли пользователей обновлены', 'success');
         })
         .catch((error) => {
             console.error("Error updating roles:", error);
-            showNotification('Ошибка обновления ролей: ' + error.message, 'error');
+            showNotification('Ошибка обновления ролей', 'error');
+        });
+}
+
+// Удаление книги
+function deleteBook(bookId) {
+    if (!confirm('Вы уверены, что хотите удалить эту книгу?')) {
+        return;
+    }
+    
+    db.collection("books").doc(bookId).delete()
+        .then(() => {
+            showNotification('Книга удалена', 'success');
+            // Удаляем книгу из локального массива
+            booksData = booksData.filter(book => book.id !== bookId);
+            displayBooks(booksData);
+        })
+        .catch(error => {
+            console.error("Error deleting book:", error);
+            showNotification('Ошибка удаления книги', 'error');
         });
 }
 
@@ -760,8 +695,11 @@ function setupAddBookForm() {
         if (file) {
             const reader = new FileReader();
             reader.onload = function(e) {
-                document.getElementById('previewImage').src = e.target.result;
-                document.getElementById('coverPreview').style.display = 'block';
+                const preview = document.getElementById('previewImage');
+                if (preview) {
+                    preview.src = e.target.result;
+                    document.getElementById('coverPreview').style.display = 'block';
+                }
             };
             reader.readAsDataURL(file);
         }
@@ -773,12 +711,11 @@ function setupAddBookForm() {
         if (file) {
             const fileSize = (file.size / (1024 * 1024)).toFixed(2);
             fileInfo.textContent = `Файл: ${file.name} (${fileSize} MB)`;
-            fileInfo.style.color = '#333';
         }
     });
     
     // Обработка отправки формы
-    addBookForm.addEventListener('submit', function(e) {
+    addBookForm.addEventListener('submit', async function(e) {
         e.preventDefault();
         
         if (!adminUser) {
@@ -786,84 +723,90 @@ function setupAddBookForm() {
             return;
         }
         
-        const bookData = {
-            title: document.getElementById('bookTitle').value,
-            author: document.getElementById('bookAuthor').value,
-            description: document.getElementById('bookDescription').value,
-            category: document.getElementById('bookCategory').value,
-            year: parseInt(document.getElementById('bookYear').value) || new Date().getFullYear(),
-            language: document.getElementById('bookLanguage').value,
-            pages: parseInt(document.getElementById('bookPages').value) || 0,
-            format: 'PDF',
-            downloads: 0,
-            addedBy: adminUser.uid,
-            addedAt: new Date().toISOString(),
-            approved: true
-        };
-        
+        const bookTitle = document.getElementById('bookTitle').value.trim();
+        const bookAuthor = document.getElementById('bookAuthor').value.trim();
+        const bookCategory = document.getElementById('bookCategory').value;
         const pdfFile = pdfUpload.files[0];
-        const coverFile = coverUpload.files[0];
         
-        if (!pdfFile) {
-            showNotification('Пожалуйста, выберите PDF файл', 'error');
+        if (!bookTitle || !bookAuthor || !bookCategory) {
+            showNotification('Заполните все обязательные поля', 'error');
             return;
         }
         
-        // Показать индикатор загрузки
-        const addBookBtn = document.querySelector('#addBookForm button[type="submit"]');
-        const originalText = addBookBtn.innerHTML;
-        addBookBtn.innerHTML = '<div class="button-loader"></div> Загрузка...';
-        addBookBtn.disabled = true;
+        if (!pdfFile) {
+            showNotification('Выберите PDF файл', 'error');
+            return;
+        }
         
-        // 1. Загружаем PDF в Storage
-        const pdfFileName = `books/${Date.now()}_${pdfFile.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
-        const pdfRef = storage.ref().child(pdfFileName);
+        // Показываем индикатор загрузки
+        const submitBtn = addBookForm.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<div class="button-loader"></div> Загрузка...';
+        submitBtn.disabled = true;
         
-        uploadProgress.style.display = 'block';
-        const pdfUploadTask = pdfRef.put(pdfFile);
-        
-        pdfUploadTask.on('state_changed',
-            (snapshot) => {
-                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                uploadProgress.value = progress;
-            },
-            (error) => {
-                console.error("PDF upload error:", error);
-                showNotification('Ошибка загрузки PDF файла: ' + error.message, 'error');
-                resetAddBookForm();
-                addBookBtn.innerHTML = originalText;
-                addBookBtn.disabled = false;
-            },
-            async () => {
-                // PDF загружен успешно, получаем URL
-                const pdfUrl = await pdfUploadTask.snapshot.ref.getDownloadURL();
-                bookData.fileUrl = pdfUrl;
-                bookData.fileName = pdfFile.name;
-                bookData.fileSize = (pdfFile.size / (1024 * 1024)).toFixed(2) + ' MB';
-                
-                // 2. Загружаем обложку (если есть)
-                if (coverFile) {
-                    const coverFileName = `covers/${Date.now()}_${coverFile.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
-                    const coverRef = storage.ref().child(coverFileName);
-                    const coverUploadTask = coverRef.put(coverFile);
-                    
-                    coverUploadTask.then(async (snapshot) => {
-                        const coverUrl = await snapshot.ref.getDownloadURL();
-                        bookData.cover = coverUrl;
-                        saveBookToFirestore(bookData, addBookBtn, originalText);
-                    }).catch(error => {
-                        console.error("Cover upload error:", error);
-                        bookData.cover = document.getElementById('bookCover').value || 
-                                        'https://images.unsplash.com/photo-1541963463532-d68292c34b19?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80';
-                        saveBookToFirestore(bookData, addBookBtn, originalText);
-                    });
-                } else {
-                    bookData.cover = document.getElementById('bookCover').value || 
-                                    'https://images.unsplash.com/photo-1541963463532-d68292c34b19?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80';
-                    saveBookToFirestore(bookData, addBookBtn, originalText);
-                }
+        try {
+            // Загружаем PDF
+            const pdfFileName = `books/${Date.now()}_${pdfFile.name.replace(/[^a-z0-9.]/gi, '_')}`;
+            const pdfRef = storage.ref().child(pdfFileName);
+            
+            uploadProgress.style.display = 'block';
+            const pdfSnapshot = await pdfRef.put(pdfFile);
+            const pdfUrl = await pdfSnapshot.ref.getDownloadURL();
+            
+            // Загружаем обложку, если есть
+            let coverUrl = document.getElementById('bookCover').value.trim();
+            const coverFile = coverUpload.files[0];
+            
+            if (coverFile) {
+                const coverFileName = `covers/${Date.now()}_${coverFile.name.replace(/[^a-z0-9.]/gi, '_')}`;
+                const coverRef = storage.ref().child(coverFileName);
+                const coverSnapshot = await coverRef.put(coverFile);
+                coverUrl = await coverSnapshot.ref.getDownloadURL();
             }
-        );
+            
+            if (!coverUrl) {
+                coverUrl = 'https://images.unsplash.com/photo-1541963463532-d68292c34b19?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80';
+            }
+            
+            // Сохраняем книгу в Firestore
+            const bookData = {
+                title: bookTitle,
+                author: bookAuthor,
+                description: document.getElementById('bookDescription').value.trim(),
+                category: bookCategory,
+                cover: coverUrl,
+                fileUrl: pdfUrl,
+                fileName: pdfFile.name,
+                fileSize: (pdfFile.size / (1024 * 1024)).toFixed(2) + ' MB',
+                year: parseInt(document.getElementById('bookYear').value) || new Date().getFullYear(),
+                language: document.getElementById('bookLanguage').value.trim() || 'Русский',
+                pages: parseInt(document.getElementById('bookPages').value) || 0,
+                format: 'PDF',
+                downloads: 0,
+                addedBy: adminUser.uid,
+                addedAt: new Date().toISOString(),
+                approved: true
+            };
+            
+            const docRef = await db.collection("books").add(bookData);
+            bookData.id = docRef.id;
+            
+            // Добавляем книгу в локальный массив
+            booksData.push(bookData);
+            
+            showNotification('Книга успешно добавлена!', 'success');
+            resetAddBookForm();
+            addBookModal.style.display = 'none';
+            displayBooks(booksData);
+            
+        } catch (error) {
+            console.error("Error adding book:", error);
+            showNotification('Ошибка добавления книги: ' + error.message, 'error');
+        } finally {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+            uploadProgress.style.display = 'none';
+        }
     });
     
     // Закрытие модального окна
@@ -873,59 +816,16 @@ function setupAddBookForm() {
     });
 }
 
-// Сохранение книги в Firestore
-function saveBookToFirestore(bookData, addBookBtn, originalText) {
-    db.collection("books").add(bookData)
-        .then((docRef) => {
-            console.log("Book added with ID: ", docRef.id);
-            showNotification('Книга успешно добавлена!', 'success');
-            resetAddBookForm();
-            addBookModal.style.display = 'none';
-            loadBooksFromFirestore();
-        })
-        .catch((error) => {
-            console.error("Error adding book: ", error);
-            showNotification('Ошибка сохранения книги: ' + error.message, 'error');
-        })
-        .finally(() => {
-            if (addBookBtn) {
-                addBookBtn.innerHTML = originalText;
-                addBookBtn.disabled = false;
-            }
-            uploadProgress.style.display = 'none';
-        });
-}
-
 // Сброс формы добавления книги
 function resetAddBookForm() {
     addBookForm.reset();
-    document.getElementById('coverPreview').style.display = 'none';
+    const coverPreview = document.getElementById('coverPreview');
+    if (coverPreview) {
+        coverPreview.style.display = 'none';
+    }
     uploadProgress.style.display = 'none';
     uploadProgress.value = 0;
     fileInfo.textContent = '';
-}
-
-// Редактирование книги
-function editBook(bookId) {
-    showNotification('Функция редактирования в разработке', 'info');
-    // В будущем можно реализовать полноценное редактирование
-}
-
-// Удаление книги
-function deleteBook(bookId) {
-    if (!confirm('Вы уверены, что хотите удалить эту книгу? Это действие нельзя отменить.')) {
-        return;
-    }
-    
-    db.collection("books").doc(bookId).delete()
-        .then(() => {
-            showNotification('Книга успешно удалена', 'success');
-            loadBooksFromFirestore();
-        })
-        .catch(error => {
-            console.error("Error deleting book:", error);
-            showNotification('Ошибка удаления книги: ' + error.message, 'error');
-        });
 }
 
 // ============ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ============
@@ -933,6 +833,8 @@ function deleteBook(bookId) {
 // Обновление интерфейса для авторизованного пользователя
 function updateUIForLoggedInUser() {
     const userContainer = document.querySelector('.user-info');
+    if (!userContainer) return;
+    
     userContainer.innerHTML = `
         <span>${currentUser.displayName || currentUser.email}</span>
         <button id="logoutBtn" class="btn btn-outline">Выйти</button>
@@ -944,6 +846,8 @@ function updateUIForLoggedInUser() {
 // Обновление интерфейса для неавторизованного пользователя
 function updateUIForLoggedOutUser() {
     const userContainer = document.querySelector('.user-info');
+    if (!userContainer) return;
+    
     userContainer.innerHTML = `
         <button id="loginBtn" class="btn btn-outline">Войти</button>
         <button id="registerBtn" class="btn">Регистрация</button>
@@ -970,74 +874,91 @@ function showNotification(message, type = 'info') {
     
     document.body.appendChild(notification);
     
-    // Автоматическое скрытие через 5 секунд
     setTimeout(() => {
-        notification.remove();
+        if (notification.parentNode) {
+            notification.remove();
+        }
     }, 5000);
 }
 
 // Настройка обработчиков событий
 function setupEventListeners() {
     // Поиск
-    searchBtn.addEventListener('click', searchBooks);
-    searchInput.addEventListener('keyup', function(e) {
-        if (e.key === 'Enter') {
-            searchBooks();
-        }
-    });
+    if (searchBtn) {
+        searchBtn.addEventListener('click', searchBooks);
+    }
+    
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function(e) {
+            if (e.key === 'Enter') {
+                searchBooks();
+            }
+        });
+    }
     
     // Модальные окна
-    loginBtn.addEventListener('click', () => {
-        loginModal.style.display = 'flex';
-    });
+    if (closeLoginModal) {
+        closeLoginModal.addEventListener('click', () => {
+            loginModal.style.display = 'none';
+        });
+    }
     
-    registerBtn.addEventListener('click', () => {
-        registerModal.style.display = 'flex';
-    });
-    
-    closeLoginModal.addEventListener('click', () => {
-        loginModal.style.display = 'none';
-    });
-    
-    closeRegisterModal.addEventListener('click', () => {
-        registerModal.style.display = 'none';
-    });
+    if (closeRegisterModal) {
+        closeRegisterModal.addEventListener('click', () => {
+            registerModal.style.display = 'none';
+        });
+    }
     
     // Переключение между модальными окнами
-    showRegister.addEventListener('click', (e) => {
-        e.preventDefault();
-        loginModal.style.display = 'none';
-        registerModal.style.display = 'flex';
-    });
+    if (showRegister) {
+        showRegister.addEventListener('click', (e) => {
+            e.preventDefault();
+            loginModal.style.display = 'none';
+            registerModal.style.display = 'flex';
+        });
+    }
     
-    showLogin.addEventListener('click', (e) => {
-        e.preventDefault();
-        registerModal.style.display = 'none';
-        loginModal.style.display = 'flex';
-    });
+    if (showLogin) {
+        showLogin.addEventListener('click', (e) => {
+            e.preventDefault();
+            registerModal.style.display = 'none';
+            loginModal.style.display = 'flex';
+        });
+    }
     
     // Формы
-    loginForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const email = document.getElementById('loginEmail').value;
-        const password = document.getElementById('loginPassword').value;
-        login(email, password);
-    });
+    if (loginForm) {
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            if (email && password) {
+                login(email, password);
+            }
+        });
+    }
     
-    registerForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const name = document.getElementById('registerName').value;
-        const email = document.getElementById('registerEmail').value;
-        const password = document.getElementById('registerPassword').value;
-        const confirmPassword = document.getElementById('confirmPassword').value;
-        
-        if (password !== confirmPassword) {
-            showNotification('Пароли не совпадают', 'error');
-            return;
-        }
-        
-        register(name, email, password);
-    });
+    if (registerForm) {
+        registerForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('registerName').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            if (!name || !email || !password || !confirmPassword) {
+                showNotification('Заполните все поля', 'error');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                showNotification('Пароли не совпадают', 'error');
+                return;
+            }
+            
+            register(name, email, password);
+        });
+    }
     
     // Закрытие модальных окон при клике вне их
     window.addEventListener('click', (e) => {
@@ -1053,14 +974,14 @@ function setupEventListeners() {
         }
     });
     
-    // Плавная прокрутка для якорных ссылок
+    // Плавная прокрутка
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function (e) {
-            e.preventDefault();
-            const targetId = this.getAttribute('href');
-            if (targetId === '#') return;
+            const href = this.getAttribute('href');
+            if (href === '#' || href === '#!') return;
             
-            const targetElement = document.querySelector(targetId);
+            e.preventDefault();
+            const targetElement = document.querySelector(href);
             if (targetElement) {
                 window.scrollTo({
                     top: targetElement.offsetTop - 80,
@@ -1071,28 +992,5 @@ function setupEventListeners() {
     });
 }
 
-// ============ ФУНКЦИИ ДЛЯ ОТЛАДКИ ============
-
-// Проверка подключения к Firebase
-console.log("Firebase services initialized:", {
-    auth: !!auth,
-    firestore: !!db,
-    storage: !!storage
-});
-
-// Глобальная функция для отладки (можно вызывать из консоли браузера)
-window.debugApp = {
-    getCurrentUser: () => currentUser,
-    getAdminStatus: () => adminUser,
-    reloadBooks: () => loadBooksFromFirestore(),
-    checkFirestoreConnection: () => {
-        console.log("Checking Firestore connection...");
-        db.collection("books").limit(1).get()
-            .then(snapshot => {
-                console.log("Firestore connection OK. Books count:", snapshot.size);
-            })
-            .catch(error => {
-                console.error("Firestore connection error:", error);
-            });
-    }
-};
+// ============ ИНИЦИАЛИЗАЦИЯ ============
+console.log("Digital Library application initialized");
