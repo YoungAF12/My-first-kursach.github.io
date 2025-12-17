@@ -1,12 +1,13 @@
 // ============ КОНФИГУРАЦИЯ FIREBASE ============
 // ЗАМЕНИТЕ ЭТУ КОНФИГУРАЦИЮ НА СВОЮ ИЗ FIREBASE CONSOLE
 const firebaseConfig = {
-    apiKey: "AIzaSyCg3XqoVnBOWABcXeAnIAXo_wi_3Tr_Ww8",
-    authDomain: "digital-library-demo.firebaseapp.com",
-    projectId: "digital-library-demo",
-    storageBucket: "digital-library-demo.appspot.com",
-    messagingSenderId: "123456789012",
-    appId: "1:123456789012:web:abcdef1234567890abcdef"
+  apiKey: "AIzaSyDqnau8N2mHjhOTMpxXqYe8EDGfxqGqQn0",
+  authDomain: "my-first-kyrsachic.firebaseapp.com",
+  projectId: "my-first-kyrsachic",
+  storageBucket: "my-first-kyrsachic.firebasestorage.app",
+  messagingSenderId: "741117010262",
+  appId: "1:741117010262:web:2972f2e62517ccc2b9f6f7",
+  measurementId: "G-81YS0ZHEXX"
 };
 
 // Инициализация Firebase
