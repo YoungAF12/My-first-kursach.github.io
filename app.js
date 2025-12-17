@@ -1,12 +1,13 @@
 // ============ КОНФИГУРАЦИЯ FIREBASE ============
 // ВАЖНО: Замените эту конфигурацию на вашу из Firebase Console!
 const firebaseConfig = {
-    apiKey: "ВАШ_API_KEY",
-    authDomain: "ВАШ_PROJECT_ID.firebaseapp.com",
-    projectId: "ВАШ_PROJECT_ID",
-    storageBucket: "ВАШ_PROJECT_ID.appspot.com",
-    messagingSenderId: "ВАШ_MESSAGING_SENDER_ID",
-    appId: "ВАШ_APP_ID"
+  apiKey: "AIzaSyDqnau8N2mHjhOTMpxXqYe8EDGfxqGqQn0",
+  authDomain: "my-first-kyrsachic.firebaseapp.com",
+  projectId: "my-first-kyrsachic",
+  storageBucket: "my-first-kyrsachic.firebasestorage.app",
+  messagingSenderId: "741117010262",
+  appId: "1:741117010262:web:2972f2e62517ccc2b9f6f7",
+  measurementId: "G-81YS0ZHEXX"
 };
 
 // Инициализация Firebase
