@@ -48,6 +48,7 @@
     <!-- Секция книг -->
     <section class="books-section" id="books">
         <div class="container">
+            <!-- Админ панель появится здесь автоматически для админов -->
             <div class="section-header">
                 <h2>Популярные книги</h2>
                 <div class="category-filter" id="categoryFilter">
@@ -115,6 +116,78 @@
             <div class="login-link">
                 <p>Уже есть аккаунт? <a href="#" id="showLogin">Войти</a></p>
             </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно добавления книги (для админов) -->
+    <div class="modal" id="addBookModal">
+        <div class="modal-content">
+            <span class="close-modal" id="closeAddBookModal">&times;</span>
+            <h2>Добавить новую книгу</h2>
+            <form id="addBookForm">
+                <div class="form-group">
+                    <label for="bookTitle">Название книги *</label>
+                    <input type="text" id="bookTitle" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="bookAuthor">Автор *</label>
+                    <input type="text" id="bookAuthor" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="bookDescription">Описание</label>
+                    <textarea id="bookDescription" class="form-control" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="bookCategory">Категория *</label>
+                    <select id="bookCategory" class="form-control" required>
+                        <option value="">Выберите категорию</option>
+                        <option value="Классика">Классика</option>
+                        <option value="Фэнтези">Фэнтези</option>
+                        <option value="Научная фантастика">Научная фантастика</option>
+                        <option value="Детектив">Детектив</option>
+                        <option value="Детская литература">Детская литература</option>
+                        <option value="Философия">Философия</option>
+                        <option value="Научно-популярная">Научно-популярная</option>
+                        <option value="Бизнес">Бизнес</option>
+                        <option value="Программирование">Программирование</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="bookCover">URL обложки</label>
+                    <input type="url" id="bookCover" class="form-control" 
+                           placeholder="https://example.com/cover.jpg">
+                    <small>Или загрузите обложку ниже</small>
+                </div>
+                <div class="form-group">
+                    <label for="coverUpload">Загрузить обложку</label>
+                    <input type="file" id="coverUpload" class="form-control" accept="image/*">
+                    <div id="coverPreview" style="margin-top: 10px; display: none;">
+                        <img id="previewImage" style="max-width: 100px; max-height: 150px;">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="pdfUpload">PDF файл книги *</label>
+                    <input type="file" id="pdfUpload" class="form-control" accept=".pdf" required>
+                    <small id="fileInfo"></small>
+                    <progress id="uploadProgress" value="0" max="100" style="width: 100%; display: none;"></progress>
+                </div>
+                <div class="form-group">
+                    <label for="bookYear">Год издания</label>
+                    <input type="number" id="bookYear" class="form-control" min="1900" max="2024" value="2023">
+                </div>
+                <div class="form-group">
+                    <label for="bookLanguage">Язык</label>
+                    <input type="text" id="bookLanguage" class="form-control" value="Русский">
+                </div>
+                <div class="form-group">
+                    <label for="bookPages">Количество страниц</label>
+                    <input type="number" id="bookPages" class="form-control" min="1">
+                </div>
+                <button type="submit" class="btn btn-accent" style="width: 100%;">
+                    <span id="addBookBtnText">Добавить книгу</span>
+                    <div class="loader" id="addBookLoader" style="display: none; margin: 0 auto;"></div>
+                </button>
+            </form>
         </div>
     </div>
 
