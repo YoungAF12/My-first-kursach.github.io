@@ -288,7 +288,44 @@ function showBookDetails(book) {
     modal.className = 'modal';
     modal.style.display = 'flex';
     
-    const downloadUrl = book.fileUrl || '#';
+    // В функции downloadBook замените:
+const downloadUrl = book.fileUrl || '#';
+
+// На:
+const downloadUrl = book.fileUrl && book.fileUrl.includes('drive.google.com') 
+    ? convertGoogleDriveLink(book.fileUrl)
+    : book.fileUrl || '#';
+
+// Добавьте эту вспомогательную функцию для конвертации ссылок Google Drive:
+function convertGoogleDriveLink(url) {
+    try {
+        // Если ссылка уже в формате для скачивания
+        if (url.includes('export=download')) {
+            return url;
+        }
+        
+        // Если ссылка в формате просмотра
+        if (url.includes('file/d/')) {
+            const match = url.match(/\/d\/([^\/]+)/);
+            if (match && match[1]) {
+                return `https://drive.google.com/uc?export=download&id=${match[1]}`;
+            }
+        }
+        
+        // Если ссылка в формате открытия
+        if (url.includes('id=')) {
+            const match = url.match(/id=([^&]+)/);
+            if (match && match[1]) {
+                return `https://drive.google.com/uc?export=download&id=${match[1]}`;
+            }
+        }
+        
+        return url;
+    } catch (error) {
+        console.error("Error converting Google Drive link:", error);
+        return url;
+    }
+}
     const fileName = `${book.title.replace(/[^a-z0-9]/gi, '_')}.pdf`;
     
     modal.innerHTML = `
