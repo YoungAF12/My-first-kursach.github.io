@@ -1,7 +1,6 @@
 [file name]: app.js
 [file content begin]
 // ============ КОНФИГУРАЦИЯ FIREBASE ============
-// ВАЖНО: Замените эту конфигурацию на вашу из Firebase Console!
 const firebaseConfig = {
   apiKey: "AIzaSyDqnau8N2mHjhOTMpxXqYe8EDGfxqGqQn0",
   authDomain: "my-first-kyrsachic.firebaseapp.com",
@@ -23,7 +22,7 @@ const categories = ["Все", "Классика", "Фэнтези", "Научн�
 let currentUser = null;
 let adminUser = null;
 let isAdminMode = false;
-let booksData = []; // Храним загруженные книги
+let booksData = [];
 
 // ============ DOM ЭЛЕМЕНТЫ ============
 const booksGrid = document.getElementById('booksGrid');
@@ -127,7 +126,6 @@ function initCategories() {
 
 // Фильтрация книг по категории
 function filterByCategory(e, category) {
-    // Обновляем активную кнопку
     document.querySelectorAll('.category-btn').forEach(btn => {
         btn.classList.remove('active');
     });
@@ -252,49 +250,95 @@ function searchBooks() {
     displayBooks(filteredBooks);
 }
 
-// Функция для получения ссылки на скачивание
-async function getBookDownloadUrl(book) {
+// ============ ФУНКЦИИ ДЛЯ РАБОТЫ С GOOGLE DRIVE ============
+
+// Преобразование Google Drive ссылки в прямую ссылку для скачивания
+function convertGoogleDriveLink(url) {
+    if (!url) return null;
+    
+    console.log("Преобразование Google Drive ссылки:", url);
+    
+    // 1. Проверяем, является ли ссылка Google Drive
+    if (!url.includes('drive.google.com')) {
+        console.log("Не Google Drive ссылка");
+        return url; // Возвращаем как есть
+    }
+    
+    // 2. Извлекаем ID файла из разных форматов ссылок
+    let fileId = '';
+    
+    // Формат 1: https://drive.google.com/file/d/FILE_ID/view
+    const fileIdMatch1 = url.match(/\/d\/([^\/]+)/);
+    if (fileIdMatch1) {
+        fileId = fileIdMatch1[1];
+    }
+    
+    // Формат 2: https://drive.google.com/open?id=FILE_ID
+    const fileIdMatch2 = url.match(/id=([^&]+)/);
+    if (fileIdMatch2 && !fileId) {
+        fileId = fileIdMatch2[1];
+    }
+    
+    // Формат 3: https://drive.google.com/uc?id=FILE_ID&export=download
+    const fileIdMatch3 = url.match(/\/uc\?id=([^&]+)/);
+    if (fileIdMatch3 && !fileId) {
+        fileId = fileIdMatch3[1];
+    }
+    
+    if (!fileId) {
+        console.error("Не удалось извлечь ID файла из Google Drive ссылки");
+        return url;
+    }
+    
+    console.log("Найден ID файла:", fileId);
+    
+    // 3. Создаем прямую ссылку для скачивания
+    // Формат: https://drive.google.com/uc?export=download&id=FILE_ID
+    const directDownloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+    console.log("Прямая ссылка для скачивания:", directDownloadUrl);
+    
+    return directDownloadUrl;
+}
+
+// Проверка типа файла
+async function checkFileType(url) {
     try {
-        // Если уже есть прямая ссылка
-        if (book.fileUrl && book.fileUrl.startsWith('https://')) {
-            console.log("Используем прямую ссылку:", book.fileUrl);
-            return book.fileUrl;
+        console.log("Проверка типа файла по URL:", url);
+        
+        // Для Google Drive пропускаем проверку
+        if (url.includes('drive.google.com')) {
+            console.log("Google Drive ссылка, пропускаем проверку");
+            return true;
         }
         
-        // Если есть название файла, пытаемся получить из Storage
-        if (book.fileName) {
-            console.log("Ищем файл в Storage:", book.fileName);
-            const storageRef = storage.ref();
-            
-            // Пробуем разные пути
-            const pathsToTry = [
-                `books/${book.fileName}`,
-                `books/${book.id}.pdf`,
-                book.fileName
-            ];
-            
-            for (const path of pathsToTry) {
-                try {
-                    const fileRef = storageRef.child(path);
-                    const url = await fileRef.getDownloadURL();
-                    console.log("Найден файл по пути:", path);
-                    return url;
-                } catch (error) {
-                    console.log("Не удалось найти по пути:", path);
-                }
-            }
+        // Для других ссылок проверяем Content-Type
+        const response = await fetch(url, { 
+            method: 'HEAD',
+            mode: 'no-cors' // Для CORS проблем
+        }).catch(() => null);
+        
+        if (!response) {
+            console.log("Не удалось проверить тип файла, продолжаем в любом случае");
+            return true;
         }
         
-        // Если ничего не помогло, возвращаем null
-        console.error("Не удалось найти ссылку для книги:", book.title);
-        return null;
+        const contentType = response.headers.get('content-type');
+        console.log("Content-Type:", contentType);
+        
+        if (contentType && (contentType.includes('application/pdf') || contentType.includes('application/octet-stream'))) {
+            return true;
+        }
+        
+        console.warn("Возможно, не PDF файл. Content-Type:", contentType);
+        return true; // Все равно продолжаем
+        
     } catch (error) {
-        console.error("Ошибка при получении ссылки:", error);
-        return null;
+        console.error("Ошибка при проверке типа файла:", error);
+        return true; // Продолжаем в любом случае
     }
 }
 
-// Скачивание книги
+// Основная функция скачивания книги
 async function downloadBook(bookId) {
     if (!currentUser) {
         showNotification('Для скачивания книг необходимо войти в систему', 'error');
@@ -302,40 +346,57 @@ async function downloadBook(bookId) {
         return;
     }
     
-    // Находим книгу
     const book = booksData.find(b => b.id === bookId);
     if (!book) {
         showNotification('Книга не найдена', 'error');
         return;
     }
     
-    // Показываем уведомление о начале скачивания
-    showNotification(`Подготовка к скачиванию "${book.title}"...`, 'info');
-    
-    // Получаем ссылку для скачивания
-    const downloadUrl = await getBookDownloadUrl(book);
-    
-    if (!downloadUrl) {
-        // Если не удалось получить ссылку, показываем детали книги
-        showNotification(`Файл для книги "${book.title}" не найден`, 'error');
-        showBookDetails(book);
+    // Проверяем, есть ли ссылка на файл
+    if (!book.fileUrl) {
+        showNotification(`Для книги "${book.title}" не указана ссылка на файл`, 'error');
         return;
     }
     
+    showNotification(`Подготовка "${book.title}" к скачиванию...`, 'info');
+    
     try {
-        // Создаем временную ссылку для скачивания
-        const a = document.createElement('a');
-        a.href = downloadUrl;
-        a.download = `${book.title.replace(/[^a-z0-9]/gi, '_')}.pdf`;
-        a.target = '_blank';
-        a.style.display = 'none';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        // Преобразуем Google Drive ссылку, если нужно
+        let downloadUrl = book.fileUrl;
         
-        showNotification(`Начинается скачивание "${book.title}"`, 'success');
+        if (book.fileUrl.includes('drive.google.com')) {
+            downloadUrl = convertGoogleDriveLink(book.fileUrl);
+            console.log("Используем преобразованную ссылку:", downloadUrl);
+        }
         
-        // Обновляем счетчик скачиваний в Firestore
+        // Проверяем тип файла
+        await checkFileType(downloadUrl);
+        
+        // Создаем скрытую ссылку для скачивания
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = `${book.title.replace(/[^a-z0-9а-яё\s]/gi, '_').trim()}.pdf`;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        
+        // Для Google Drive добавляем атрибут, чтобы открывалось скачивание
+        if (downloadUrl.includes('drive.google.com')) {
+            link.setAttribute('download', ''); // Пустое значение заставляет скачивать
+        }
+        
+        // Инициируем скачивание
+        document.body.appendChild(link);
+        
+        // Для Google Drive используем click, для других - возможно, нужно открыть в новом окне
+        if (downloadUrl.includes('drive.google.com')) {
+            link.click();
+        } else {
+            window.open(downloadUrl, '_blank');
+        }
+        
+        document.body.removeChild(link);
+        
+        // Увеличиваем счетчик скачиваний
         const currentDownloads = book.downloads || 0;
         await db.collection("books").doc(bookId).update({
             downloads: currentDownloads + 1
@@ -347,10 +408,49 @@ async function downloadBook(bookId) {
         // Обновляем статистику пользователя
         updateUserDownloadStats(bookId, book.title);
         
+        showNotification(`Книга "${book.title}" скачивается`, 'success');
+        
     } catch (error) {
         console.error("Ошибка при скачивании:", error);
-        showNotification('Ошибка при скачивании файла', 'error');
+        showNotification(`Ошибка скачивания: ${error.message}`, 'error');
+        
+        // Показываем детали книги как запасной вариант
+        showBookDetails(book);
     }
+}
+
+// Альтернативный метод скачивания через iframe (работает для Google Drive)
+function downloadViaIframe(book) {
+    return new Promise((resolve, reject) => {
+        try {
+            let downloadUrl = book.fileUrl;
+            
+            // Преобразуем Google Drive ссылку
+            if (book.fileUrl.includes('drive.google.com')) {
+                downloadUrl = convertGoogleDriveLink(book.fileUrl);
+            }
+            
+            // Создаем iframe для скачивания
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = downloadUrl;
+            iframe.onload = () => {
+                setTimeout(() => {
+                    document.body.removeChild(iframe);
+                    resolve(true);
+                }, 1000);
+            };
+            iframe.onerror = () => {
+                document.body.removeChild(iframe);
+                reject(new Error('Ошибка загрузки iframe'));
+            };
+            
+            document.body.appendChild(iframe);
+            
+        } catch (error) {
+            reject(error);
+        }
+    });
 }
 
 // Показать детали книги
@@ -380,23 +480,48 @@ function showBookDetails(book) {
             </div>
             <p class="book-details-description">${book.description || 'Описание отсутствует'}</p>
             <p><strong>Скачано:</strong> ${book.downloads || 0} раз</p>
+            <p><strong>Ссылка на файл:</strong> <a href="${book.fileUrl}" target="_blank" style="word-break: break-all;">${book.fileUrl}</a></p>
             <div style="margin-top: 20px;">
                 <button class="btn" id="tryDownloadAgain" data-id="${book.id}">
-                    <i class="fas fa-download"></i> Попробовать скачать
+                    <i class="fas fa-download"></i> Скачать книгу
+                </button>
+                <button class="btn" id="openInNewTab" data-url="${book.fileUrl}" style="margin-left: 10px;">
+                    <i class="fas fa-external-link-alt"></i> Открыть в новой вкладке
                 </button>
                 <button class="btn btn-outline" style="margin-left: 10px;" id="closeBookDetails">
                     Закрыть
                 </button>
             </div>
+            <div id="downloadStatus" style="margin-top: 15px; display: none;"></div>
         </div>
     `;
     
     document.body.appendChild(modal);
     
-    // Кнопка для повторной попытки скачивания
+    // Кнопка для скачивания
     document.getElementById('tryDownloadAgain').addEventListener('click', async () => {
         const bookId = document.getElementById('tryDownloadAgain').getAttribute('data-id');
+        
+        const statusDiv = document.getElementById('downloadStatus');
+        statusDiv.style.display = 'block';
+        statusDiv.innerHTML = '<div class="loader" style="display: inline-block;"></div> Подготовка скачивания...';
+        
         await downloadBook(bookId);
+        setTimeout(() => {
+            statusDiv.innerHTML = '';
+        }, 2000);
+    });
+    
+    // Кнопка для открытия в новой вкладке
+    document.getElementById('openInNewTab').addEventListener('click', () => {
+        let url = document.getElementById('openInNewTab').getAttribute('data-url');
+        
+        // Преобразуем Google Drive ссылку, если нужно
+        if (url.includes('drive.google.com')) {
+            url = convertGoogleDriveLink(url);
+        }
+        
+        window.open(url, '_blank');
     });
     
     // Закрытие модального окна
@@ -455,7 +580,6 @@ function checkAdminStatus(user) {
                     showAdminPanel();
                 }
             } else {
-                // Создаем документ пользователя
                 createUserDocument(user);
             }
         })
@@ -614,7 +738,6 @@ function showAdminPanel() {
     const sectionHeader = booksSection.querySelector('.section-header');
     booksSection.insertAdjacentHTML('afterbegin', adminPanelHTML);
     
-    // Назначаем обработчики
     document.getElementById('adminToggle').addEventListener('change', function(e) {
         isAdminMode = e.target.checked;
         loadBooksFromFirestore();
@@ -749,7 +872,6 @@ function deleteBook(bookId) {
     db.collection("books").doc(bookId).delete()
         .then(() => {
             showNotification('Книга удалена', 'success');
-            // Удаляем книгу из локального массива
             booksData = booksData.filter(book => book.id !== bookId);
             displayBooks(booksData);
         })
@@ -763,7 +885,6 @@ function deleteBook(bookId) {
 
 // Настройка формы добавления книги
 function setupAddBookForm() {
-    // Предпросмотр обложки
     coverUpload.addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (file) {
@@ -779,7 +900,6 @@ function setupAddBookForm() {
         }
     });
     
-    // Информация о PDF файле
     pdfUpload.addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (file) {
@@ -788,7 +908,7 @@ function setupAddBookForm() {
         }
     });
     
-    // Обработка отправки формы
+    // НОВОЕ: Убираем обязательную загрузку PDF файла
     addBookForm.addEventListener('submit', async function(e) {
         e.preventDefault();
         
@@ -800,34 +920,51 @@ function setupAddBookForm() {
         const bookTitle = document.getElementById('bookTitle').value.trim();
         const bookAuthor = document.getElementById('bookAuthor').value.trim();
         const bookCategory = document.getElementById('bookCategory').value;
-        const pdfFile = pdfUpload.files[0];
         
         if (!bookTitle || !bookAuthor || !bookCategory) {
             showNotification('Заполните все обязательные поля', 'error');
             return;
         }
         
-        if (!pdfFile) {
-            showNotification('Выберите PDF файл', 'error');
-            return;
-        }
-        
-        // Показываем индикатор загрузки
         const submitBtn = addBookForm.querySelector('button[type="submit"]');
         const originalText = submitBtn.innerHTML;
         submitBtn.innerHTML = '<div class="button-loader"></div> Загрузка...';
         submitBtn.disabled = true;
         
         try {
-            // Загружаем PDF
-            const pdfFileName = `books/${Date.now()}_${pdfFile.name.replace(/[^a-z0-9.]/gi, '_')}`;
-            const pdfRef = storage.ref().child(pdfFileName);
+            let fileUrl = document.getElementById('bookCover').value.trim(); // Может быть ссылка на Google Drive
+            let fileName = '';
+            let fileSize = '';
             
-            uploadProgress.style.display = 'block';
-            const pdfSnapshot = await pdfRef.put(pdfFile);
-            const pdfUrl = await pdfSnapshot.ref.getDownloadURL();
+            const pdfFile = pdfUpload.files[0];
             
-            // Загружаем обложку, если есть
+            // Если загружается файл через форму
+            if (pdfFile) {
+                const pdfFileName = `books/${Date.now()}_${pdfFile.name.replace(/[^a-z0-9.]/gi, '_')}`;
+                const pdfRef = storage.ref().child(pdfFileName);
+                
+                uploadProgress.style.display = 'block';
+                const pdfSnapshot = await pdfRef.put(pdfFile);
+                fileUrl = await pdfSnapshot.ref.getDownloadURL();
+                fileName = pdfFile.name;
+                fileSize = (pdfFile.size / (1024 * 1024)).toFixed(2) + ' MB';
+            }
+            // Если указана прямая ссылка (Google Drive)
+            else if (fileUrl) {
+                fileName = bookTitle + '.pdf';
+                fileSize = 'Неизвестно';
+                
+                // Преобразуем Google Drive ссылку для отображения
+                if (fileUrl.includes('drive.google.com')) {
+                    fileUrl = convertGoogleDriveLink(fileUrl);
+                }
+            } else {
+                showNotification('Укажите ссылку на файл или загрузите PDF', 'error');
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+                return;
+            }
+            
             let coverUrl = document.getElementById('bookCover').value.trim();
             const coverFile = coverUpload.files[0];
             
@@ -842,16 +979,15 @@ function setupAddBookForm() {
                 coverUrl = 'https://images.unsplash.com/photo-1541963463532-d68292c34b19?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80';
             }
             
-            // Сохраняем книгу в Firestore
             const bookData = {
                 title: bookTitle,
                 author: bookAuthor,
                 description: document.getElementById('bookDescription').value.trim(),
                 category: bookCategory,
                 cover: coverUrl,
-                fileUrl: pdfUrl,
-                fileName: pdfFile.name,
-                fileSize: (pdfFile.size / (1024 * 1024)).toFixed(2) + ' MB',
+                fileUrl: fileUrl,
+                fileName: fileName,
+                fileSize: fileSize,
                 year: parseInt(document.getElementById('bookYear').value) || new Date().getFullYear(),
                 language: document.getElementById('bookLanguage').value.trim() || 'Русский',
                 pages: parseInt(document.getElementById('bookPages').value) || 0,
@@ -865,7 +1001,6 @@ function setupAddBookForm() {
             const docRef = await db.collection("books").add(bookData);
             bookData.id = docRef.id;
             
-            // Добавляем книгу в локальный массив
             booksData.push(bookData);
             
             showNotification('Книга успешно добавлена!', 'success');
@@ -883,7 +1018,6 @@ function setupAddBookForm() {
         }
     });
     
-    // Закрытие модального окна
     closeAddBookModal.addEventListener('click', () => {
         addBookModal.style.display = 'none';
         resetAddBookForm();
@@ -938,7 +1072,6 @@ function updateUIForLoggedOutUser() {
 
 // Показать уведомление
 function showNotification(message, type = 'info') {
-    // Удаляем старые уведомления
     const oldNotifications = document.querySelectorAll('.notification');
     oldNotifications.forEach(notif => notif.remove());
     
@@ -957,7 +1090,6 @@ function showNotification(message, type = 'info') {
 
 // Настройка обработчиков событий
 function setupEventListeners() {
-    // Поиск
     if (searchBtn) {
         searchBtn.addEventListener('click', searchBooks);
     }
@@ -970,7 +1102,6 @@ function setupEventListeners() {
         });
     }
     
-    // Модальные окна
     if (closeLoginModal) {
         closeLoginModal.addEventListener('click', () => {
             loginModal.style.display = 'none';
@@ -983,7 +1114,6 @@ function setupEventListeners() {
         });
     }
     
-    // Переключение между модальными окнами
     if (showRegister) {
         showRegister.addEventListener('click', (e) => {
             e.preventDefault();
@@ -1000,7 +1130,6 @@ function setupEventListeners() {
         });
     }
     
-    // Формы
     if (loginForm) {
         loginForm.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -1034,7 +1163,6 @@ function setupEventListeners() {
         });
     }
     
-    // Закрытие модальных окон при клике вне их
     window.addEventListener('click', (e) => {
         if (e.target === loginModal) {
             loginModal.style.display = 'none';
@@ -1048,7 +1176,6 @@ function setupEventListeners() {
         }
     });
     
-    // Плавная прокрутка
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function (e) {
             const href = this.getAttribute('href');
