@@ -1,3 +1,5 @@
+[file name]: app.js
+[file content begin]
 // ============ КОНФИГУРАЦИЯ FIREBASE ============
 // ВАЖНО: Замените эту конфигурацию на вашу из Firebase Console!
 const firebaseConfig = {
@@ -250,8 +252,50 @@ function searchBooks() {
     displayBooks(filteredBooks);
 }
 
+// Функция для получения ссылки на скачивание
+async function getBookDownloadUrl(book) {
+    try {
+        // Если уже есть прямая ссылка
+        if (book.fileUrl && book.fileUrl.startsWith('https://')) {
+            console.log("Используем прямую ссылку:", book.fileUrl);
+            return book.fileUrl;
+        }
+        
+        // Если есть название файла, пытаемся получить из Storage
+        if (book.fileName) {
+            console.log("Ищем файл в Storage:", book.fileName);
+            const storageRef = storage.ref();
+            
+            // Пробуем разные пути
+            const pathsToTry = [
+                `books/${book.fileName}`,
+                `books/${book.id}.pdf`,
+                book.fileName
+            ];
+            
+            for (const path of pathsToTry) {
+                try {
+                    const fileRef = storageRef.child(path);
+                    const url = await fileRef.getDownloadURL();
+                    console.log("Найден файл по пути:", path);
+                    return url;
+                } catch (error) {
+                    console.log("Не удалось найти по пути:", path);
+                }
+            }
+        }
+        
+        // Если ничего не помогло, возвращаем null
+        console.error("Не удалось найти ссылку для книги:", book.title);
+        return null;
+    } catch (error) {
+        console.error("Ошибка при получении ссылки:", error);
+        return null;
+    }
+}
+
 // Скачивание книги
-function downloadBook(bookId) {
+async function downloadBook(bookId) {
     if (!currentUser) {
         showNotification('Для скачивания книг необходимо войти в систему', 'error');
         loginModal.style.display = 'flex';
@@ -265,22 +309,48 @@ function downloadBook(bookId) {
         return;
     }
     
-    // Показываем детали книги
-    showBookDetails(book);
+    // Показываем уведомление о начале скачивания
+    showNotification(`Подготовка к скачиванию "${book.title}"...`, 'info');
     
-    // Обновляем счетчик скачиваний в Firestore
-    const currentDownloads = book.downloads || 0;
-    db.collection("books").doc(bookId).update({
-        downloads: currentDownloads + 1
-    }).then(() => {
+    // Получаем ссылку для скачивания
+    const downloadUrl = await getBookDownloadUrl(book);
+    
+    if (!downloadUrl) {
+        // Если не удалось получить ссылку, показываем детали книги
+        showNotification(`Файл для книги "${book.title}" не найден`, 'error');
+        showBookDetails(book);
+        return;
+    }
+    
+    try {
+        // Создаем временную ссылку для скачивания
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = `${book.title.replace(/[^a-z0-9]/gi, '_')}.pdf`;
+        a.target = '_blank';
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        showNotification(`Начинается скачивание "${book.title}"`, 'success');
+        
+        // Обновляем счетчик скачиваний в Firestore
+        const currentDownloads = book.downloads || 0;
+        await db.collection("books").doc(bookId).update({
+            downloads: currentDownloads + 1
+        });
+        
         // Обновляем локальные данные
         book.downloads = currentDownloads + 1;
         
         // Обновляем статистику пользователя
         updateUserDownloadStats(bookId, book.title);
-    }).catch(error => {
-        console.error("Error updating download count:", error);
-    });
+        
+    } catch (error) {
+        console.error("Ошибка при скачивании:", error);
+        showNotification('Ошибка при скачивании файла', 'error');
+    }
 }
 
 // Показать детали книги
@@ -288,9 +358,6 @@ function showBookDetails(book) {
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.style.display = 'flex';
-    
-    const downloadUrl = book.fileUrl || '#';
-    const fileName = `${book.title.replace(/[^a-z0-9]/gi, '_')}.pdf`;
     
     modal.innerHTML = `
         <div class="book-details-popup">
@@ -312,11 +379,11 @@ function showBookDetails(book) {
                 </div>
             </div>
             <p class="book-details-description">${book.description || 'Описание отсутствует'}</p>
-            <p><strong>Скачано:</strong> ${(book.downloads || 0) + 1} раз</p>
+            <p><strong>Скачано:</strong> ${book.downloads || 0} раз</p>
             <div style="margin-top: 20px;">
-                <a href="${downloadUrl}" class="book-download-large" download="${fileName}" target="_blank">
-                    <i class="fas fa-download"></i> Скачать книгу (PDF)
-                </a>
+                <button class="btn" id="tryDownloadAgain" data-id="${book.id}">
+                    <i class="fas fa-download"></i> Попробовать скачать
+                </button>
                 <button class="btn btn-outline" style="margin-left: 10px;" id="closeBookDetails">
                     Закрыть
                 </button>
@@ -325,6 +392,12 @@ function showBookDetails(book) {
     `;
     
     document.body.appendChild(modal);
+    
+    // Кнопка для повторной попытки скачивания
+    document.getElementById('tryDownloadAgain').addEventListener('click', async () => {
+        const bookId = document.getElementById('tryDownloadAgain').getAttribute('data-id');
+        await downloadBook(bookId);
+    });
     
     // Закрытие модального окна
     document.getElementById('closeBookDetails').addEventListener('click', () => {
@@ -995,3 +1068,4 @@ function setupEventListeners() {
 
 // ============ ИНИЦИАЛИЗАЦИЯ ============
 console.log("Digital Library application initialized");
+[file content end]
