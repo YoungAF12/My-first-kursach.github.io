@@ -105,9 +105,12 @@ function displayNoBooksMessage() {
     loadingBooks.style.display = 'none';
     
     if (currentUser && adminUser) {
-        document.getElementById('addFirstBookBtn').addEventListener('click', () => {
-            addBookModal.style.display = 'flex';
-        });
+        const addFirstBookBtn = document.getElementById('addFirstBookBtn');
+        if (addFirstBookBtn) {
+            addFirstBookBtn.addEventListener('click', () => {
+                addBookModal.style.display = 'flex';
+            });
+        }
     }
 }
 
@@ -230,12 +233,15 @@ function searchBooks() {
     const searchTerm = searchInput.value.toLowerCase().trim();
     
     if (searchTerm === '') {
-        const activeCategory = document.querySelector('.category-btn.active').dataset.category;
-        if (activeCategory === 'Все') {
-            displayBooks(booksData);
-        } else {
-            const filteredBooks = booksData.filter(book => book.category === activeCategory);
-            displayBooks(filteredBooks);
+        const activeCategory = document.querySelector('.category-btn.active');
+        if (activeCategory) {
+            const category = activeCategory.dataset.category;
+            if (category === 'Все') {
+                displayBooks(booksData);
+            } else {
+                const filteredBooks = booksData.filter(book => book.category === category);
+                displayBooks(filteredBooks);
+            }
         }
         return;
     }
@@ -258,13 +264,13 @@ function convertGoogleDriveLink(url) {
     
     console.log("Преобразование Google Drive ссылки:", url);
     
-    // 1. Проверяем, является ли ссылка Google Drive
+    // Проверяем, является ли ссылка Google Drive
     if (!url.includes('drive.google.com')) {
         console.log("Не Google Drive ссылка");
         return url; // Возвращаем как есть
     }
     
-    // 2. Извлекаем ID файла из разных форматов ссылок
+    // Извлекаем ID файла из разных форматов ссылок
     let fileId = '';
     
     // Формат 1: https://drive.google.com/file/d/FILE_ID/view
@@ -292,8 +298,7 @@ function convertGoogleDriveLink(url) {
     
     console.log("Найден ID файла:", fileId);
     
-    // 3. Создаем прямую ссылку для скачивания
-    // Формат: https://drive.google.com/uc?export=download&id=FILE_ID
+    // Создаем прямую ссылку для скачивания
     const directDownloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
     console.log("Прямая ссылка для скачивания:", directDownloadUrl);
     
@@ -311,30 +316,29 @@ async function checkFileType(url) {
             return true;
         }
         
-        // Для других ссылок проверяем Content-Type
-        const response = await fetch(url, { 
-            method: 'HEAD',
-            mode: 'no-cors' // Для CORS проблем
-        }).catch(() => null);
-        
-        if (!response) {
-            console.log("Не удалось проверить тип файла, продолжаем в любом случае");
-            return true;
+        // Для других ссылок пытаемся проверить
+        try {
+            const response = await fetch(url, { 
+                method: 'HEAD'
+            });
+            
+            if (response && response.headers) {
+                const contentType = response.headers.get('content-type');
+                console.log("Content-Type:", contentType);
+                
+                if (contentType && (contentType.includes('application/pdf') || contentType.includes('application/octet-stream'))) {
+                    return true;
+                }
+            }
+        } catch (fetchError) {
+            console.log("Не удалось проверить тип файла:", fetchError);
         }
         
-        const contentType = response.headers.get('content-type');
-        console.log("Content-Type:", contentType);
-        
-        if (contentType && (contentType.includes('application/pdf') || contentType.includes('application/octet-stream'))) {
-            return true;
-        }
-        
-        console.warn("Возможно, не PDF файл. Content-Type:", contentType);
-        return true; // Все равно продолжаем
+        return true; // Продолжаем в любом случае
         
     } catch (error) {
         console.error("Ошибка при проверке типа файла:", error);
-        return true; // Продолжаем в любом случае
+        return true;
     }
 }
 
@@ -417,40 +421,6 @@ async function downloadBook(bookId) {
         // Показываем детали книги как запасной вариант
         showBookDetails(book);
     }
-}
-
-// Альтернативный метод скачивания через iframe (работает для Google Drive)
-function downloadViaIframe(book) {
-    return new Promise((resolve, reject) => {
-        try {
-            let downloadUrl = book.fileUrl;
-            
-            // Преобразуем Google Drive ссылку
-            if (book.fileUrl.includes('drive.google.com')) {
-                downloadUrl = convertGoogleDriveLink(book.fileUrl);
-            }
-            
-            // Создаем iframe для скачивания
-            const iframe = document.createElement('iframe');
-            iframe.style.display = 'none';
-            iframe.src = downloadUrl;
-            iframe.onload = () => {
-                setTimeout(() => {
-                    document.body.removeChild(iframe);
-                    resolve(true);
-                }, 1000);
-            };
-            iframe.onerror = () => {
-                document.body.removeChild(iframe);
-                reject(new Error('Ошибка загрузки iframe'));
-            };
-            
-            document.body.appendChild(iframe);
-            
-        } catch (error) {
-            reject(error);
-        }
-    });
 }
 
 // Показать детали книги
@@ -736,19 +706,35 @@ function showAdminPanel() {
     `;
     
     const sectionHeader = booksSection.querySelector('.section-header');
-    booksSection.insertAdjacentHTML('afterbegin', adminPanelHTML);
-    
-    document.getElementById('adminToggle').addEventListener('change', function(e) {
-        isAdminMode = e.target.checked;
-        loadBooksFromFirestore();
-    });
-    
-    document.getElementById('addBookBtn').addEventListener('click', () => {
-        addBookModal.style.display = 'flex';
-    });
-    
-    document.getElementById('viewUsersBtn').addEventListener('click', showUsersList);
-    document.getElementById('refreshBooksBtn').addEventListener('click', loadBooksFromFirestore);
+    if (sectionHeader) {
+        booksSection.insertAdjacentHTML('afterbegin', adminPanelHTML);
+        
+        // Назначаем обработчики
+        const adminToggle = document.getElementById('adminToggle');
+        if (adminToggle) {
+            adminToggle.addEventListener('change', function(e) {
+                isAdminMode = e.target.checked;
+                loadBooksFromFirestore();
+            });
+        }
+        
+        const addBookBtn = document.getElementById('addBookBtn');
+        if (addBookBtn) {
+            addBookBtn.addEventListener('click', () => {
+                addBookModal.style.display = 'flex';
+            });
+        }
+        
+        const viewUsersBtn = document.getElementById('viewUsersBtn');
+        if (viewUsersBtn) {
+            viewUsersBtn.addEventListener('click', showUsersList);
+        }
+        
+        const refreshBooksBtn = document.getElementById('refreshBooksBtn');
+        if (refreshBooksBtn) {
+            refreshBooksBtn.addEventListener('click', loadBooksFromFirestore);
+        }
+    }
 }
 
 // Показать список пользователей
@@ -825,9 +811,12 @@ function showUsersModal(content) {
         modal.remove();
     });
     
-    document.getElementById('saveRolesBtn').addEventListener('click', () => {
-        saveUserRoles(modal);
-    });
+    const saveRolesBtn = document.getElementById('saveRolesBtn');
+    if (saveRolesBtn) {
+        saveRolesBtn.addEventListener('click', () => {
+            saveUserRoles(modal);
+        });
+    }
     
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
@@ -885,155 +874,191 @@ function deleteBook(bookId) {
 
 // Настройка формы добавления книги
 function setupAddBookForm() {
-    coverUpload.addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const preview = document.getElementById('previewImage');
-                if (preview) {
-                    preview.src = e.target.result;
-                    document.getElementById('coverPreview').style.display = 'block';
-                }
-            };
-            reader.readAsDataURL(file);
-        }
-    });
-    
-    pdfUpload.addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (file) {
-            const fileSize = (file.size / (1024 * 1024)).toFixed(2);
-            fileInfo.textContent = `Файл: ${file.name} (${fileSize} MB)`;
-        }
-    });
-    
-    // НОВОЕ: Убираем обязательную загрузку PDF файла
-    addBookForm.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        if (!adminUser) {
-            showNotification('Только администраторы могут добавлять книги', 'error');
-            return;
-        }
-        
-        const bookTitle = document.getElementById('bookTitle').value.trim();
-        const bookAuthor = document.getElementById('bookAuthor').value.trim();
-        const bookCategory = document.getElementById('bookCategory').value;
-        
-        if (!bookTitle || !bookAuthor || !bookCategory) {
-            showNotification('Заполните все обязательные поля', 'error');
-            return;
-        }
-        
-        const submitBtn = addBookForm.querySelector('button[type="submit"]');
-        const originalText = submitBtn.innerHTML;
-        submitBtn.innerHTML = '<div class="button-loader"></div> Загрузка...';
-        submitBtn.disabled = true;
-        
-        try {
-            let fileUrl = document.getElementById('bookCover').value.trim(); // Может быть ссылка на Google Drive
-            let fileName = '';
-            let fileSize = '';
-            
-            const pdfFile = pdfUpload.files[0];
-            
-            // Если загружается файл через форму
-            if (pdfFile) {
-                const pdfFileName = `books/${Date.now()}_${pdfFile.name.replace(/[^a-z0-9.]/gi, '_')}`;
-                const pdfRef = storage.ref().child(pdfFileName);
-                
-                uploadProgress.style.display = 'block';
-                const pdfSnapshot = await pdfRef.put(pdfFile);
-                fileUrl = await pdfSnapshot.ref.getDownloadURL();
-                fileName = pdfFile.name;
-                fileSize = (pdfFile.size / (1024 * 1024)).toFixed(2) + ' MB';
+    if (coverUpload) {
+        coverUpload.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('previewImage');
+                    const coverPreview = document.getElementById('coverPreview');
+                    if (preview && coverPreview) {
+                        preview.src = e.target.result;
+                        coverPreview.style.display = 'block';
+                    }
+                };
+                reader.readAsDataURL(file);
             }
-            // Если указана прямая ссылка (Google Drive)
-            else if (fileUrl) {
-                fileName = bookTitle + '.pdf';
-                fileSize = 'Неизвестно';
-                
-                // Преобразуем Google Drive ссылку для отображения
-                if (fileUrl.includes('drive.google.com')) {
-                    fileUrl = convertGoogleDriveLink(fileUrl);
-                }
-            } else {
-                showNotification('Укажите ссылку на файл или загрузите PDF', 'error');
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
+        });
+    }
+    
+    if (pdfUpload) {
+        pdfUpload.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file && fileInfo) {
+                const fileSize = (file.size / (1024 * 1024)).toFixed(2);
+                fileInfo.textContent = `Файл: ${file.name} (${fileSize} MB)`;
+            }
+        });
+    }
+    
+    if (addBookForm) {
+        addBookForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            if (!adminUser) {
+                showNotification('Только администраторы могут добавлять книги', 'error');
                 return;
             }
             
-            let coverUrl = document.getElementById('bookCover').value.trim();
-            const coverFile = coverUpload.files[0];
+            const bookTitle = document.getElementById('bookTitle').value.trim();
+            const bookAuthor = document.getElementById('bookAuthor').value.trim();
+            const bookCategory = document.getElementById('bookCategory').value;
             
-            if (coverFile) {
-                const coverFileName = `covers/${Date.now()}_${coverFile.name.replace(/[^a-z0-9.]/gi, '_')}`;
-                const coverRef = storage.ref().child(coverFileName);
-                const coverSnapshot = await coverRef.put(coverFile);
-                coverUrl = await coverSnapshot.ref.getDownloadURL();
+            if (!bookTitle || !bookAuthor || !bookCategory) {
+                showNotification('Заполните все обязательные поля', 'error');
+                return;
             }
             
-            if (!coverUrl) {
-                coverUrl = 'https://images.unsplash.com/photo-1541963463532-d68292c34b19?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80';
+            const submitBtn = addBookForm.querySelector('button[type="submit"]');
+            if (!submitBtn) return;
+            
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<div class="button-loader"></div> Загрузка...';
+            submitBtn.disabled = true;
+            
+            try {
+                let fileUrl = '';
+                let fileName = '';
+                let fileSize = '';
+                
+                const pdfFile = pdfUpload.files[0];
+                
+                // Если загружается файл через форму
+                if (pdfFile) {
+                    const pdfFileName = `books/${Date.now()}_${pdfFile.name.replace(/[^a-z0-9.]/gi, '_')}`;
+                    const pdfRef = storage.ref().child(pdfFileName);
+                    
+                    if (uploadProgress) {
+                        uploadProgress.style.display = 'block';
+                    }
+                    
+                    const pdfSnapshot = await pdfRef.put(pdfFile);
+                    fileUrl = await pdfSnapshot.ref.getDownloadURL();
+                    fileName = pdfFile.name;
+                    fileSize = (pdfFile.size / (1024 * 1024)).toFixed(2) + ' MB';
+                }
+                // Если указана прямая ссылка (например, Google Drive)
+                else {
+                    const fileUrlInput = document.getElementById('bookCover');
+                    if (fileUrlInput) {
+                        fileUrl = fileUrlInput.value.trim();
+                    }
+                    
+                    if (!fileUrl) {
+                        showNotification('Укажите ссылку на файл или загрузите PDF', 'error');
+                        submitBtn.innerHTML = originalText;
+                        submitBtn.disabled = false;
+                        return;
+                    }
+                    
+                    fileName = bookTitle + '.pdf';
+                    fileSize = 'Неизвестно';
+                    
+                    // Преобразуем Google Drive ссылку для отображения
+                    if (fileUrl.includes('drive.google.com')) {
+                        fileUrl = convertGoogleDriveLink(fileUrl);
+                    }
+                }
+                
+                let coverUrl = '';
+                const coverUrlInput = document.getElementById('bookCover');
+                if (coverUrlInput) {
+                    coverUrl = coverUrlInput.value.trim();
+                }
+                
+                const coverFile = coverUpload.files[0];
+                
+                if (coverFile) {
+                    const coverFileName = `covers/${Date.now()}_${coverFile.name.replace(/[^a-z0-9.]/gi, '_')}`;
+                    const coverRef = storage.ref().child(coverFileName);
+                    const coverSnapshot = await coverRef.put(coverFile);
+                    coverUrl = await coverSnapshot.ref.getDownloadURL();
+                }
+                
+                if (!coverUrl) {
+                    coverUrl = 'https://images.unsplash.com/photo-1541963463532-d68292c34b19?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80';
+                }
+                
+                const bookData = {
+                    title: bookTitle,
+                    author: bookAuthor,
+                    description: document.getElementById('bookDescription').value.trim(),
+                    category: bookCategory,
+                    cover: coverUrl,
+                    fileUrl: fileUrl,
+                    fileName: fileName,
+                    fileSize: fileSize,
+                    year: parseInt(document.getElementById('bookYear').value) || new Date().getFullYear(),
+                    language: document.getElementById('bookLanguage').value.trim() || 'Русский',
+                    pages: parseInt(document.getElementById('bookPages').value) || 0,
+                    format: 'PDF',
+                    downloads: 0,
+                    addedBy: adminUser.uid,
+                    addedAt: new Date().toISOString(),
+                    approved: true
+                };
+                
+                const docRef = await db.collection("books").add(bookData);
+                bookData.id = docRef.id;
+                
+                booksData.push(bookData);
+                
+                showNotification('Книга успешно добавлена!', 'success');
+                resetAddBookForm();
+                addBookModal.style.display = 'none';
+                displayBooks(booksData);
+                
+            } catch (error) {
+                console.error("Error adding book:", error);
+                showNotification('Ошибка добавления книги: ' + error.message, 'error');
+            } finally {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+                if (uploadProgress) {
+                    uploadProgress.style.display = 'none';
+                }
             }
-            
-            const bookData = {
-                title: bookTitle,
-                author: bookAuthor,
-                description: document.getElementById('bookDescription').value.trim(),
-                category: bookCategory,
-                cover: coverUrl,
-                fileUrl: fileUrl,
-                fileName: fileName,
-                fileSize: fileSize,
-                year: parseInt(document.getElementById('bookYear').value) || new Date().getFullYear(),
-                language: document.getElementById('bookLanguage').value.trim() || 'Русский',
-                pages: parseInt(document.getElementById('bookPages').value) || 0,
-                format: 'PDF',
-                downloads: 0,
-                addedBy: adminUser.uid,
-                addedAt: new Date().toISOString(),
-                approved: true
-            };
-            
-            const docRef = await db.collection("books").add(bookData);
-            bookData.id = docRef.id;
-            
-            booksData.push(bookData);
-            
-            showNotification('Книга успешно добавлена!', 'success');
-            resetAddBookForm();
-            addBookModal.style.display = 'none';
-            displayBooks(booksData);
-            
-        } catch (error) {
-            console.error("Error adding book:", error);
-            showNotification('Ошибка добавления книги: ' + error.message, 'error');
-        } finally {
-            submitBtn.innerHTML = originalText;
-            submitBtn.disabled = false;
-            uploadProgress.style.display = 'none';
-        }
-    });
+        });
+    }
     
-    closeAddBookModal.addEventListener('click', () => {
-        addBookModal.style.display = 'none';
-        resetAddBookForm();
-    });
+    if (closeAddBookModal) {
+        closeAddBookModal.addEventListener('click', () => {
+            addBookModal.style.display = 'none';
+            resetAddBookForm();
+        });
+    }
 }
 
 // Сброс формы добавления книги
 function resetAddBookForm() {
-    addBookForm.reset();
+    if (addBookForm) {
+        addBookForm.reset();
+    }
+    
     const coverPreview = document.getElementById('coverPreview');
     if (coverPreview) {
         coverPreview.style.display = 'none';
     }
-    uploadProgress.style.display = 'none';
-    uploadProgress.value = 0;
-    fileInfo.textContent = '';
+    
+    if (uploadProgress) {
+        uploadProgress.style.display = 'none';
+        uploadProgress.value = 0;
+    }
+    
+    if (fileInfo) {
+        fileInfo.textContent = '';
+    }
 }
 
 // ============ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ============
@@ -1048,7 +1073,10 @@ function updateUIForLoggedInUser() {
         <button id="logoutBtn" class="btn btn-outline">Выйти</button>
     `;
     
-    document.getElementById('logoutBtn').addEventListener('click', logout);
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', logout);
+    }
 }
 
 // Обновление интерфейса для неавторизованного пользователя
@@ -1061,13 +1089,19 @@ function updateUIForLoggedOutUser() {
         <button id="registerBtn" class="btn">Регистрация</button>
     `;
     
-    document.getElementById('loginBtn').addEventListener('click', () => {
-        loginModal.style.display = 'flex';
-    });
+    const loginBtnElement = document.getElementById('loginBtn');
+    if (loginBtnElement) {
+        loginBtnElement.addEventListener('click', () => {
+            loginModal.style.display = 'flex';
+        });
+    }
     
-    document.getElementById('registerBtn').addEventListener('click', () => {
-        registerModal.style.display = 'flex';
-    });
+    const registerBtnElement = document.getElementById('registerBtn');
+    if (registerBtnElement) {
+        registerBtnElement.addEventListener('click', () => {
+            registerModal.style.display = 'flex';
+        });
+    }
 }
 
 // Показать уведомление
