@@ -287,9 +287,6 @@ function showBookDetails(book) {
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.style.display = 'flex';
-    
-    // В функции downloadBook замените:
-const downloadUrl = book.fileUrl || '#';
 
 // На:
 const downloadUrl = book.fileUrl && book.fileUrl.includes('drive.google.com') 
